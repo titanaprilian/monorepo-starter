@@ -1,4 +1,3 @@
-import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { PGlite } from "@electric-sql/pglite";
 import { eq } from "drizzle-orm";
@@ -9,10 +8,8 @@ import {
   InvalidCredentialsError,
   InvalidRegistrationInputError,
 } from "@repo/contracts";
-import { users } from "@repo/db";
+import { users, MIGRATIONS_FOLDER } from "@repo/db";
 import { createAuthenticationService } from "./index";
-
-const MIGRATIONS_FOLDER = path.join(import.meta.dir, "../../../../../packages/db/drizzle");
 
 describe("authentication module (boundary)", () => {
   let client: PGlite;

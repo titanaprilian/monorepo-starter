@@ -59,8 +59,23 @@ export function createAuthenticationServiceInternal<
         createdAt: new Date(),
       };
 
-      await db.insert(users).values(row);
-      return toUser(row);
+      try {
+        await db.insert(users).values(row);
+        return toUser(row);
+      } catch (e: unknown) {
+        // Drizzle may wrap the underlying pgLite error
+        const error = e as { cause?: { code?: string; message?: string }; code?: string; message?: string };
+        const cause = error.cause || error;
+        
+        if (
+          cause.code === "23505" || 
+          cause.message?.includes("duplicate key value violates unique constraint") || 
+          cause.message?.includes("UNIQUE constraint failed")
+        ) {
+          throw new EmailAlreadyRegisteredError(email);
+        }
+        throw e;
+      }
     },
 
     async verifyCredentials(input: VerifyCredentialsInput): Promise<User> {

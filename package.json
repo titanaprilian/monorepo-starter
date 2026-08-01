@@ -1,0 +1,14 @@
+{
+  "name": "monorepo-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --cwd apps/elysia-template dev",
+    "test": "bun test"
+  }
+}

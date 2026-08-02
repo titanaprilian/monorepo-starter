@@ -10,7 +10,7 @@ import {
   type User,
   type VerifyCredentialsInput,
 } from "@repo/contracts";
-import { users, type NewUserRow, type UserRow } from "@repo/db";
+import { users, type NewUserRow } from "@repo/db";
 import { hashPassword, verifyPassword } from "./password";
 
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -21,6 +21,9 @@ function normalizeEmail(email: string): string {
 }
 
 function validateRegistration(input: RegisterInput): void {
+  if (!input.name || input.name.trim() === "") {
+    throw new InvalidRegistrationInputError("name is required");
+  }
   if (!EMAIL_PATTERN.test(input.email.trim())) {
     throw new InvalidRegistrationInputError("email must be a valid email address");
   }
@@ -31,8 +34,8 @@ function validateRegistration(input: RegisterInput): void {
   }
 }
 
-function toUser(row: UserRow): User {
-  return { id: row.id, email: row.email, createdAt: row.createdAt };
+function toUser(row: { id: string; email: string; name?: string | null; createdAt: Date }): User {
+  return { id: row.id, name: row.name ?? undefined, email: row.email, createdAt: row.createdAt };
 }
 
 export function createAuthenticationServiceInternal<
@@ -54,6 +57,7 @@ export function createAuthenticationServiceInternal<
       const passwordHash = await hashPassword(input.password);
       const row: NewUserRow = {
         id: randomUUID(),
+        name: input.name.trim(),
         email,
         passwordHash,
         createdAt: new Date(),
@@ -92,6 +96,18 @@ export function createAuthenticationServiceInternal<
       }
 
       return toUser(row);
+    },
+
+    async getUserProfile(_userId: string): Promise<unknown> {
+      throw new Error("Method not implemented.");
+    },
+
+    async logout(_token: string): Promise<unknown> {
+      throw new Error("Method not implemented.");
+    },
+
+    async logoutAll(_userId: string): Promise<unknown> {
+      throw new Error("Method not implemented.");
     },
   };
 }

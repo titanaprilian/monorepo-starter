@@ -34,6 +34,7 @@ export const authRoutes = (options: AuthRoutesOptions) => {
       },
       {
         body: t.Object({
+          name: t.String(),
           email: t.String(),
           password: t.String(),
         }),

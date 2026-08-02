@@ -1,10 +1,12 @@
 export type User = {
   id: string;
   email: string;
+  name?: string;
   createdAt: Date;
 };
 
 export type RegisterInput = {
+  name: string;
   email: string;
   password: string;
 };
@@ -36,6 +38,9 @@ export class InvalidCredentialsError extends Error {
 }
 
 export interface AuthenticationService {
-  register(input: RegisterInput): Promise<User>;
-  verifyCredentials(input: VerifyCredentialsInput): Promise<User>;
+  register(input: RegisterInput | Record<string, any>): Promise<any>;
+  verifyCredentials(input: VerifyCredentialsInput): Promise<any>;
+  getUserProfile(userId: string): Promise<any>;
+  logout(token: string): Promise<any>;
+  logoutAll(userId: string): Promise<any>;
 }

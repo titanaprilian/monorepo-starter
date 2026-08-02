@@ -51,7 +51,7 @@ describe("app composition root (Tier 3)", () => {
       new Request("http://localhost/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "e2e@example.com", password: "hunter2hunter" }),
+        body: JSON.stringify({ name: "E2E User", email: "e2e@example.com", password: "hunter2hunter" }),
       })
     );
     expect(response.status).toBe(200);
@@ -65,7 +65,7 @@ describe("app composition root (Tier 3)", () => {
       new Request("http://localhost/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "login-e2e@example.com", password: "hunter2hunter" }),
+        body: JSON.stringify({ name: "Login E2E", email: "login-e2e@example.com", password: "hunter2hunter" }),
       })
     );
     expect(register.status).toBe(200);
@@ -87,7 +87,7 @@ describe("app composition root (Tier 3)", () => {
       new Request("http://localhost/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "dup@example.com", password: "hunter2hunter" }),
+        body: JSON.stringify({ name: "Dup", email: "dup@example.com", password: "hunter2hunter" }),
       })
     );
     expect(first.status).toBe(200);
@@ -96,7 +96,7 @@ describe("app composition root (Tier 3)", () => {
       new Request("http://localhost/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "dup@example.com", password: "hunter2hunter" }),
+        body: JSON.stringify({ name: "Dup", email: "dup@example.com", password: "hunter2hunter" }),
       })
     );
     expect(second.status).toBe(409);
@@ -118,6 +118,15 @@ describe("app composition root (Tier 3)", () => {
       verifyCredentials: async () => {
         throw new Error("database exploded");
       },
+      getUserProfile: async () => {
+        throw new Error("database exploded");
+      },
+      logout: async () => {
+        throw new Error("database exploded");
+      },
+      logoutAll: async () => {
+        throw new Error("database exploded");
+      },
     };
 
     const failingApp = createApp({ db, auth: failingAuth });
@@ -125,7 +134,7 @@ describe("app composition root (Tier 3)", () => {
       new Request("http://localhost/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "boom@example.com", password: "hunter2hunter" }),
+        body: JSON.stringify({ name: "Boom", email: "boom@example.com", password: "hunter2hunter" }),
       })
     );
     expect(response.status).toBe(500);

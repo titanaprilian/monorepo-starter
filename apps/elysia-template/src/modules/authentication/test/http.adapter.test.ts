@@ -17,6 +17,15 @@ describe("authentication http adapter (Tier 2)", () => {
     verifyCredentials: async () => {
       throw new Error("Mock not configured");
     },
+    getUserProfile: async () => {
+      throw new Error("Mock not configured");
+    },
+    logout: async () => {
+      throw new Error("Mock not configured");
+    },
+    logoutAll: async () => {
+      throw new Error("Mock not configured");
+    },
   };
 
   // Mount the plugin under test
@@ -26,11 +35,13 @@ describe("authentication http adapter (Tier 2)", () => {
     test("returns 200 and the user enveloped in data on successful registration", async () => {
       const mockUser = {
         id: "user-123",
+        name: "Test User",
         email: "test@example.com",
         createdAt: new Date("2026-08-01T00:00:00.000Z"),
       };
 
       mockAuthService.register = async (input) => {
+        expect(input.name).toBe("Test User");
         expect(input.email).toBe("test@example.com");
         expect(input.password).toBe("password123");
         return mockUser;
@@ -40,7 +51,7 @@ describe("authentication http adapter (Tier 2)", () => {
         new Request("http://localhost/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: "test@example.com", password: "password123" }),
+          body: JSON.stringify({ name: "Test User", email: "test@example.com", password: "password123" }),
         })
       );
 
@@ -49,6 +60,7 @@ describe("authentication http adapter (Tier 2)", () => {
       expect(json).toEqual({
         data: {
           id: "user-123",
+          name: "Test User",
           email: "test@example.com",
           createdAt: "2026-08-01T00:00:00.000Z",
         },
@@ -64,7 +76,7 @@ describe("authentication http adapter (Tier 2)", () => {
         new Request("http://localhost/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: "conflict@example.com", password: "password123" }),
+          body: JSON.stringify({ name: "Conflict User", email: "conflict@example.com", password: "password123" }),
         })
       );
 
@@ -87,7 +99,7 @@ describe("authentication http adapter (Tier 2)", () => {
         new Request("http://localhost/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: "invalid@example.com", password: "short" }),
+          body: JSON.stringify({ name: "Invalid User", email: "invalid@example.com", password: "short" }),
         })
       );
 
@@ -101,12 +113,24 @@ describe("authentication http adapter (Tier 2)", () => {
       });
     });
 
+    test("returns 422 when schema validation fails (missing name)", async () => {
+      const response = await app.handle(
+        new Request("http://localhost/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: "noname@example.com", password: "password123" }),
+        })
+      );
+
+      expect(response.status).toBe(422);
+    });
+
     test("returns 422 when schema validation fails (missing email)", async () => {
       const response = await app.handle(
         new Request("http://localhost/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: "password123" }),
+          body: JSON.stringify({ name: "No Email User", password: "password123" }),
         })
       );
 

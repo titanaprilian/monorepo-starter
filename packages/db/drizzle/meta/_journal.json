@@ -22,6 +22,13 @@
       "when": 1785650941203,
       "tag": "0002_dear_shiva",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785651704162,
+      "tag": "0003_smart_magus",
+      "breakpoints": true
     }
   ]
 }

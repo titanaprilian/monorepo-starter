@@ -1,2 +1,6 @@
 [test]
 root = "."
+pathIgnorePatterns = [
+  "apps/elysia-template/src/modules/*/*.test.ts",
+  "apps/elysia-template/src/modules/*/internal/*.test.ts",
+]

@@ -10,7 +10,7 @@ When implementing a feature or fixing a bug in a module, you **must** follow thi
    First, locate and read the relevant contracts (usually in `packages/contracts` or the module's public definitions/types) to understand the data structures and the module's public interface. This keeps your context window clean and prevents you from making incorrect assumptions about the interface.
 
 2. **Read Boundary Tests**
-   Second, read the TDD-first boundary test located at the module root (`src/modules/<feature>/*.test.ts`). These tests are human-authored and act as the immutable specification for your target feature. Make sure you understand the input/output expectations and assertions.
+   Second, read the TDD-first boundary test located at `src/modules/<feature>/test/*.boundary.test.ts`. These tests are human-authored and act as the immutable specification for your target feature. Make sure you understand the input/output expectations and assertions.
 
 3. **Modify Internals Only**
    Third, implement the required logic. You must exclusively modify or create files inside the target module's `/internal/` directory (e.g., `src/modules/<feature>/internal/*`). The module's public entry point (`src/modules/<feature>/index.ts`) must only export the concrete implementation satisfying the public contract.
@@ -45,16 +45,28 @@ Transport concerns live **inside** each domain module but must never leak out of
 
 ## Testing Tiers & Ownership
 
-### Tier 1: Boundary Tests (`src/modules/<feature>/*.test.ts`)
+Test files are organized into dedicated `test/` subdirectories at each level of the module hierarchy, and every test filename carries a suffix that encodes its tier and ownership. The suffix — not the folder position — is the sole structural signal for ownership, so you can identify a file's role and mutability from its name alone.
+
+**Naming convention:**
+
+| Suffix | Tier | Owner | Location |
+| --- | --- | --- | --- |
+| `.boundary.test.ts` | Tier 1 | Human (immutable to agents) | `<feature>/test/` |
+| `.adapter.test.ts` | Tier 2 | Agent | `<feature>/test/` |
+| `.unit.test.ts` | Tier 2 | Agent | `<feature>/internal/test/` |
+| `.orchestration.test.ts` | Tier 3 | Human (immutable to agents) | `src/` root |
+
+### Tier 1: Boundary Tests (`src/modules/<feature>/test/*.boundary.test.ts`)
 - **Owner**: Human
 - **Rules**: AI agents **cannot** modify or delete these tests. They serve as the source of truth for features.
 - **Goal**: Validate public contracts and interfaces (Black-box).
 
-### Tier 2: Internal Tests (`src/modules/<feature>/internal/*.test.ts` and `src/modules/<feature>/http.test.ts`)
+### Tier 2: Internal Tests (`src/modules/<feature>/internal/test/*.unit.test.ts` and `src/modules/<feature>/test/*.adapter.test.ts`)
 - **Owner**: AI Agent (You!)
-- **Rules**: You are free to create, modify, or delete internal tests to verify your code's correctness. Humans do not review these tests for style or format, but they must pass before merging.
-- **Goal**: White-box checks for complex internal algorithms/logic. HTTP adapter tests (`http.test.ts`) mount the feature's plugin onto a fresh Elysia instance with injected/mocked dependencies and verify schema validation and status-code mappings (e.g. Domain Error -> 400) via `app.handle()`.
+- **Rules**: You are free to create, modify, or delete these tests to verify your code's correctness. Humans do not review these tests for style or format, but they must pass before merging.
+- **Goal**: White-box checks for complex internal algorithms/logic. HTTP adapter tests (`*.adapter.test.ts`) mount the feature's plugin onto a fresh Elysia instance with injected/mocked dependencies and verify schema validation and status-code mappings (e.g. Domain Error -> 400) via `app.handle()`.
 
-### Tier 3: Orchestration Tests (`workflows/*.test.ts` or `src/workflows/*.test.ts`)
+### Tier 3: Orchestration Tests (`src/app.orchestration.test.ts`)
 - **Owner**: Human
+- **Rules**: AI agents **cannot** modify or delete these tests.
 - **Goal**: Verify cross-module interactions and transaction rollbacks at the application root level.

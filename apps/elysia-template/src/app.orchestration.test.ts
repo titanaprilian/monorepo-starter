@@ -130,7 +130,7 @@ describe("app composition root (Tier 3)", () => {
     );
     expect(response.status).toBe(500);
     const json = await response.json();
-    expect(json.error.code).toBe("INTERNAL_SERVER_ERROR");
+    expect(json.error.code).toBe("INTERNAL_SERVER");
     expect(json.error.message).toBe("internal server error");
   });
 });

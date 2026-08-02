@@ -4,16 +4,11 @@ import type { DbClient } from "@repo/db";
 import { errorResponse } from "./lib/response";
 import { authRoutes } from "./modules/authentication/http";
 import { healthRoutes } from "./modules/health/http";
+import { InternalServerError } from "./lib/errors";
 
 export interface CreateAppDeps {
   db: DbClient;
   auth: AuthenticationService;
-}
-
-class InternalServerErrorError extends Error {
-  constructor() {
-    super("internal server error");
-  }
 }
 
 export const createApp = (deps: CreateAppDeps) => {
@@ -24,7 +19,7 @@ export const createApp = (deps: CreateAppDeps) => {
       if (code === "NOT_FOUND") {
         return;
       }
-      return errorResponse(set, 500, new InternalServerErrorError());
+      return errorResponse(set, 500, new InternalServerError());
     })
     .use(healthRoutes({ db }))
     .use(authRoutes({ authService: auth }));

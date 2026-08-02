@@ -10,8 +10,9 @@ import {
   type User,
   type VerifyCredentialsInput,
 } from "@repo/contracts";
-import { users, type NewUserRow } from "@repo/db";
+import { users, refreshTokens, type NewUserRow } from "@repo/db";
 import { hashPassword, verifyPassword } from "./password";
+import { signJwt, hashRefreshToken } from "./jwt";
 
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -45,7 +46,7 @@ export function createAuthenticationServiceInternal<
   db: PgDatabase<THKT, TSchema>
 ): AuthenticationService {
   return {
-    async register(input: RegisterInput): Promise<User> {
+    async register(input: RegisterInput): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string } }> {
       validateRegistration(input);
       const email = normalizeEmail(input.email);
 
@@ -63,9 +64,27 @@ export function createAuthenticationServiceInternal<
         createdAt: new Date(),
       };
 
+      const user = toUser(row);
+      const accessToken = signJwt({ sub: user.id, email: user.email, name: user.name });
+      const rawRefreshToken = randomUUID();
+      const hashedToken = hashRefreshToken(rawRefreshToken);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
       try {
         await db.insert(users).values(row);
-        return toUser(row);
+        await db.insert(refreshTokens).values({
+          token: hashedToken,
+          userId: user.id,
+          expiresAt,
+          revoked: false,
+        });
+        return {
+          user,
+          tokens: {
+            accessToken,
+            refreshToken: rawRefreshToken,
+          },
+        };
       } catch (e: unknown) {
         // Drizzle may wrap the underlying pgLite error
         const error = e as { cause?: { code?: string; message?: string }; code?: string; message?: string };
@@ -82,7 +101,7 @@ export function createAuthenticationServiceInternal<
       }
     },
 
-    async verifyCredentials(input: VerifyCredentialsInput): Promise<User> {
+    async verifyCredentials(input: VerifyCredentialsInput): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string } }> {
       const email = normalizeEmail(input.email);
 
       const [row] = await db.select().from(users).where(eq(users.email, email));
@@ -95,19 +114,49 @@ export function createAuthenticationServiceInternal<
         throw new InvalidCredentialsError();
       }
 
+      const user = toUser(row);
+      const accessToken = signJwt({ sub: user.id, email: user.email, name: user.name });
+      const rawRefreshToken = randomUUID();
+      const hashedToken = hashRefreshToken(rawRefreshToken);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      await db.insert(refreshTokens).values({
+        token: hashedToken,
+        userId: user.id,
+        expiresAt,
+        revoked: false,
+      });
+
+      return {
+        user,
+        tokens: {
+          accessToken,
+          refreshToken: rawRefreshToken,
+        },
+      };
+    },
+
+    async getUserProfile(userId: string): Promise<User> {
+      const [row] = await db.select().from(users).where(eq(users.id, userId));
+      if (!row) {
+        throw new Error("User not found");
+      }
       return toUser(row);
     },
 
-    async getUserProfile(_userId: string): Promise<unknown> {
-      throw new Error("Method not implemented.");
+    async logout(token: string): Promise<void> {
+      const hashedToken = hashRefreshToken(token);
+      await db
+        .update(refreshTokens)
+        .set({ revoked: true })
+        .where(eq(refreshTokens.token, hashedToken));
     },
 
-    async logout(_token: string): Promise<unknown> {
-      throw new Error("Method not implemented.");
-    },
-
-    async logoutAll(_userId: string): Promise<unknown> {
-      throw new Error("Method not implemented.");
+    async logoutAll(userId: string): Promise<void> {
+      await db
+        .update(refreshTokens)
+        .set({ revoked: true })
+        .where(eq(refreshTokens.userId, userId));
     },
   };
 }

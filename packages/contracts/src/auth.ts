@@ -37,6 +37,13 @@ export class InvalidCredentialsError extends Error {
   }
 }
 
+export class UnauthorizedError extends Error {
+  constructor(message: string = "unauthorized") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
 export interface AuthenticationService {
   register(input: RegisterInput | Record<string, any>): Promise<any>;
   verifyCredentials(input: VerifyCredentialsInput): Promise<any>;

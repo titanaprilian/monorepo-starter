@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { DbClient } from "@repo/db";
-import { healthRoutes } from "./http";
+import { healthRoutes } from "../http";
 
 describe("health http adapter (Tier 2)", () => {
   const mockDb = {

@@ -6,7 +6,7 @@ import {
   InvalidRegistrationInputError,
   type AuthenticationService,
 } from "@repo/contracts";
-import { authRoutes } from "./http";
+import { authRoutes } from "../http";
 
 describe("authentication http adapter (Tier 2)", () => {
   // Define a customizable mock authentication service

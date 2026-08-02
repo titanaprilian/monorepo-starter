@@ -9,7 +9,7 @@ import {
   InvalidRegistrationInputError,
 } from "@repo/contracts";
 import { users, MIGRATIONS_FOLDER } from "@repo/db";
-import { createAuthenticationService } from "./index";
+import { createAuthenticationService } from "../index";
 
 describe("authentication module (boundary)", () => {
   let client: PGlite;

@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia";
 import {
+  AccountLockedError,
   EmailAlreadyRegisteredError,
   InvalidCredentialsError,
   InvalidRegistrationInputError,
@@ -104,6 +105,9 @@ export const authRoutes = (options: AuthRoutesOptions) => {
         } catch (error) {
           if (error instanceof InvalidCredentialsError) {
             return errorResponse(set, 401, error);
+          }
+          if (error instanceof AccountLockedError) {
+            return errorResponse(set, 429, error);
           }
           throw error;
         }

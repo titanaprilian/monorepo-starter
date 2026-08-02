@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import {
+  AccountLockedError,
   EmailAlreadyRegisteredError,
   InvalidCredentialsError,
   InvalidRegistrationInputError,
@@ -16,6 +17,7 @@ import { signJwt, hashRefreshToken } from "./jwt";
 
 const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const MIN_PASSWORD_LENGTH = 8;
+const DUMMY_HASH = "$argon2id$v=19$m=65536,t=2,p=1$vgjJbKuHqF+jCFy0qUcSfo1mWkV+Pj9N8Fy4zVKvJik$beNSxuPEQ9GrO5koaX8+cwCT5eRfPcDjZuiLWAqRsL8";
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -106,12 +108,44 @@ export function createAuthenticationServiceInternal<
 
       const [row] = await db.select().from(users).where(eq(users.email, email));
       if (!row) {
+        await verifyPassword(input.password, DUMMY_HASH);
         throw new InvalidCredentialsError();
+      }
+
+      if (row.lockedUntil && new Date(row.lockedUntil) > new Date()) {
+        throw new AccountLockedError();
       }
 
       const passwordMatches = await verifyPassword(input.password, row.passwordHash);
       if (!passwordMatches) {
+        const [updated] = await db
+          .update(users)
+          .set({
+            failedAttempts: sql`${users.failedAttempts} + 1`,
+          })
+          .where(eq(users.id, row.id))
+          .returning();
+
+        if (updated.failedAttempts >= 5) {
+          await db
+            .update(users)
+            .set({
+              lockedUntil: new Date(Date.now() + 15 * 60 * 1000),
+            })
+            .where(eq(users.id, row.id));
+        }
+
         throw new InvalidCredentialsError();
+      }
+
+      if (row.failedAttempts > 0 || row.lockedUntil !== null) {
+        await db
+          .update(users)
+          .set({
+            failedAttempts: 0,
+            lockedUntil: null,
+          })
+          .where(eq(users.id, row.id));
       }
 
       const user = toUser(row);

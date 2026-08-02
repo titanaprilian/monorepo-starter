@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
 import {
+  AccountLockedError,
   InvalidCredentialsError,
   type AuthenticationService,
 } from "@repo/contracts";
@@ -148,6 +149,26 @@ describe("authentication http adapter: login", () => {
     const json = await response.json();
     expect(json).toEqual({
       error: { code: "INVALID_CREDENTIALS", message: "invalid email or password" },
+    });
+  });
+
+  test("returns 429 with ACCOUNT_LOCKED code on account locked error", async () => {
+    mockAuthService.verifyCredentials = async () => {
+      throw new AccountLockedError();
+    };
+
+    const response = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "locked@example.com", password: "password123" }),
+      })
+    );
+
+    expect(response.status).toBe(429);
+    const json = await response.json();
+    expect(json).toEqual({
+      error: { code: "ACCOUNT_LOCKED", message: "account is locked" },
     });
   });
 

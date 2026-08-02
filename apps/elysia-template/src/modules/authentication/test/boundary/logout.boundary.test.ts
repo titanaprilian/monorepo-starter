@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { refreshTokens, MIGRATIONS_FOLDER } from "@repo/db";
-import { createAuthenticationService } from "../../index";
+import { createAuthenticationService } from "@/modules/authentication";
 
 describe("authentication: logout", () => {
   let client: PGlite;

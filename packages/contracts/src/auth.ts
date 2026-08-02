@@ -37,6 +37,13 @@ export class InvalidCredentialsError extends Error {
   }
 }
 
+export class AccountLockedError extends Error {
+  constructor() {
+    super("account is locked");
+    this.name = "AccountLockedError";
+  }
+}
+
 export class UnauthorizedError extends Error {
   constructor(message: string = "unauthorized") {
     super(message);

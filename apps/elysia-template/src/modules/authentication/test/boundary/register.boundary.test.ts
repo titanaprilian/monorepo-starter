@@ -9,7 +9,7 @@ import {
   InvalidCredentialsError,
 } from "@repo/contracts";
 import { users, refreshTokens, MIGRATIONS_FOLDER } from "@repo/db";
-import { createAuthenticationService } from "../../index";
+import { createAuthenticationService } from "@/modules/authentication";
 
 describe("authentication: register", () => {
   let client: PGlite;

@@ -3,7 +3,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { MIGRATIONS_FOLDER } from "@repo/db";
-import { createAuthenticationService } from "../../index";
+import { createAuthenticationService } from "@/modules/authentication";
 
 describe("authentication: me / getUserProfile", () => {
   let client: PGlite;

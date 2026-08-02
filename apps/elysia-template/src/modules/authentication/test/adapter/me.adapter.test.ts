@@ -3,8 +3,8 @@ import { Elysia } from "elysia";
 import {
   type AuthenticationService,
 } from "@repo/contracts";
-import { authRoutes } from "../../http";
-import { signJwt } from "../../internal/jwt";
+import { authRoutes } from "@/modules/authentication/http";
+import { signJwt } from "@/modules/authentication/internal/jwt";
 
 describe("authentication http adapter: me", () => {
   const mockAuthService: AuthenticationService = {

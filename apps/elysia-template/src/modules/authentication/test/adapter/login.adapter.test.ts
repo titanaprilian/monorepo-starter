@@ -4,7 +4,9 @@ import {
   InvalidCredentialsError,
   type AuthenticationService,
 } from "@repo/contracts";
-import { authRoutes } from "../../http";
+import type { DbClient } from "@repo/db";
+import { authRoutes } from "@/modules/authentication/http";
+import { createApp } from "@/app";
 
 describe("authentication http adapter: login", () => {
   const mockAuthService: AuthenticationService = {
@@ -146,6 +148,119 @@ describe("authentication http adapter: login", () => {
     const json = await response.json();
     expect(json).toEqual({
       error: { code: "INVALID_CREDENTIALS", message: "invalid email or password" },
+    });
+  });
+
+  describe("rate limiting", () => {
+    test("enforces tighter rate limit of 10 requests per minute on /auth/login", async () => {
+      const testApp = createApp({
+        db: {} as unknown as DbClient,
+        auth: mockAuthService,
+      });
+
+      mockAuthService.verifyCredentials = async () => {
+        return {
+          user: {
+            id: "user-123",
+            email: "test@example.com",
+            createdAt: new Date("2026-08-01T00:00:00.000Z"),
+          },
+          tokens: {
+            accessToken: "access-token-123",
+            refreshToken: "refresh-token-123",
+          },
+        };
+      };
+
+      // We make 10 requests to /auth/login which should succeed (200 status)
+      for (let i = 0; i < 10; i++) {
+        const response = await testApp.handle(
+          new Request("http://localhost/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Client-Type": "mobile", // using mobile client to avoid cookie manipulation
+              "x-test-rate-limit": "true",
+            },
+            body: JSON.stringify({ email: "test@example.com", password: "password123" }),
+          })
+        );
+        expect(response.status).toBe(200);
+      }
+
+      // The 11th request should return 429 Too Many Requests
+      const response11 = await testApp.handle(
+        new Request("http://localhost/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Client-Type": "mobile",
+            "x-test-rate-limit": "true",
+          },
+          body: JSON.stringify({ email: "test@example.com", password: "password123" }),
+        })
+      );
+      expect(response11.status).toBe(429);
+      const json = await response11.json();
+      expect(json).toEqual({
+        error: {
+          code: "RATE_LIMIT",
+          message: "rate-limit reached",
+        },
+      });
+    });
+
+    test("does not block other routes (like /health) when /auth/login limit is exceeded", async () => {
+      const testApp = createApp({
+        db: {
+          $client: {
+            unsafe: async () => [{ ok: true }],
+          },
+        } as unknown as DbClient,
+        auth: mockAuthService,
+      });
+
+      mockAuthService.verifyCredentials = async () => {
+        return {
+          user: {
+            id: "user-123",
+            email: "test@example.com",
+            createdAt: new Date("2026-08-01T00:00:00.000Z"),
+          },
+          tokens: {
+            accessToken: "access-token-123",
+            refreshToken: "refresh-token-123",
+          },
+        };
+      };
+
+      // Trigger 10 logins to hit the limit
+      for (let i = 0; i < 10; i++) {
+        await testApp.handle(
+          new Request("http://localhost/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Client-Type": "mobile",
+              "x-test-rate-limit": "true",
+            },
+            body: JSON.stringify({ email: "test@example.com", password: "password123" }),
+          })
+        );
+      }
+
+      // Check /health is still accessible
+      const healthResponse = await testApp.handle(
+        new Request("http://localhost/health", {
+          method: "GET",
+          headers: {
+            "x-test-rate-limit": "true",
+          },
+        })
+      );
+      expect(healthResponse.status).toBe(200);
+      const healthJson = await healthResponse.json();
+      expect(healthJson).toEqual({ status: "ok", db: true });
     });
   });
 });

@@ -3,7 +3,7 @@ import { Elysia } from "elysia";
 import {
   type AuthenticationService,
 } from "@repo/contracts";
-import { authRoutes } from "../../http";
+import { authRoutes } from "@/modules/authentication/http";
 
 describe("authentication http adapter: logout", () => {
   const mockAuthService: AuthenticationService = {

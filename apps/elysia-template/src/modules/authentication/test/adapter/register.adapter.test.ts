@@ -5,7 +5,7 @@ import {
   InvalidRegistrationInputError,
   type AuthenticationService,
 } from "@repo/contracts";
-import { authRoutes } from "../../http";
+import { authRoutes } from "@/modules/authentication/http";
 
 describe("authentication http adapter: register", () => {
   const mockAuthService: AuthenticationService = {

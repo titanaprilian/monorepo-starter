@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@elysiajs/rate-limit": "npm:elysia-rate-limit@4.6.2",
     "@repo/contracts": "workspace:*",
     "@repo/db": "workspace:*",
     "drizzle-orm": "^0.45.2",

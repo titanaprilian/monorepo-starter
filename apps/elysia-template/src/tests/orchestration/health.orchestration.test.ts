@@ -3,8 +3,8 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { MIGRATIONS_FOLDER, type DbClient } from "@repo/db";
-import { createApp, type App } from "../../app";
-import { createAuthenticationService } from "../../modules/authentication";
+import { createApp, type App } from "@/app";
+import { createAuthenticationService } from "@/modules/authentication";
 
 function createTestDb(client: PGlite): DbClient {
   const pgliteDb = drizzle(client);

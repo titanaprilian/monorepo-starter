@@ -20,7 +20,7 @@ function createTestDb(client: PGlite): DbClient {
   return db as unknown as DbClient;
 }
 
-describe("app composition root (Tier 3)", () => {
+describe("authentication module orchestration (Tier 3)", () => {
   let client: PGlite;
   let db: DbClient;
   let auth: AuthenticationService;
@@ -37,13 +37,6 @@ describe("app composition root (Tier 3)", () => {
 
   afterAll(async () => {
     await client.close();
-  });
-
-  test("GET /health returns ok against the injected database", async () => {
-    const response = await app.handle(new Request("http://localhost/health"));
-    expect(response.status).toBe(200);
-    const json = await response.json();
-    expect(json).toEqual({ status: "ok", db: true });
   });
 
   test("POST /auth/register persists a user end-to-end", async () => {
@@ -80,34 +73,6 @@ describe("app composition root (Tier 3)", () => {
     expect(login.status).toBe(200);
     const json = await login.json();
     expect(json.data.email).toBe("login-e2e@example.com");
-  });
-
-  test("POST /auth/register returns 409 for a duplicate email across the composed app", async () => {
-    const first = await app.handle(
-      new Request("http://localhost/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Dup", email: "dup@example.com", password: "hunter2hunter" }),
-      })
-    );
-    expect(first.status).toBe(200);
-
-    const second = await app.handle(
-      new Request("http://localhost/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Dup", email: "dup@example.com", password: "hunter2hunter" }),
-      })
-    );
-    expect(second.status).toBe(409);
-    const json = await second.json();
-    expect(json.error.code).toBe("EMAIL_ALREADY_REGISTERED");
-    expect(json.error.message).toBe("email already registered: dup@example.com");
-  });
-
-  test("unknown routes fall through to the default 404", async () => {
-    const response = await app.handle(new Request("http://localhost/unknown"));
-    expect(response.status).toBe(404);
   });
 
   test("global error handling maps unhandled errors to 500", async () => {

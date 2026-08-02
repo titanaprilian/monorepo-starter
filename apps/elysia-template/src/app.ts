@@ -1,12 +1,19 @@
 import { Elysia } from "elysia";
 import type { AuthenticationService } from "@repo/contracts";
 import type { DbClient } from "@repo/db";
+import { errorResponse } from "./lib/response";
 import { authRoutes } from "./modules/authentication/http";
 import { healthRoutes } from "./modules/health/http";
 
 export interface CreateAppDeps {
   db: DbClient;
   auth: AuthenticationService;
+}
+
+class InternalServerErrorError extends Error {
+  constructor() {
+    super("internal server error");
+  }
 }
 
 export const createApp = (deps: CreateAppDeps) => {
@@ -17,8 +24,7 @@ export const createApp = (deps: CreateAppDeps) => {
       if (code === "NOT_FOUND") {
         return;
       }
-      set.status = 500;
-      return { error: "internal server error" };
+      return errorResponse(set, 500, new InternalServerErrorError());
     })
     .use(healthRoutes({ db }))
     .use(authRoutes({ authService: auth }));

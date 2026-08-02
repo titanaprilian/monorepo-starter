@@ -23,7 +23,7 @@ describe("authentication http adapter (Tier 2)", () => {
   const app = new Elysia().use(authRoutes({ authService: mockAuthService }));
 
   describe("POST /auth/register", () => {
-    test("returns 200 and user on successful registration", async () => {
+    test("returns 200 and the user enveloped in data on successful registration", async () => {
       const mockUser = {
         id: "user-123",
         email: "test@example.com",
@@ -47,13 +47,15 @@ describe("authentication http adapter (Tier 2)", () => {
       expect(response.status).toBe(200);
       const json = await response.json();
       expect(json).toEqual({
-        id: "user-123",
-        email: "test@example.com",
-        createdAt: "2026-08-01T00:00:00.000Z",
+        data: {
+          id: "user-123",
+          email: "test@example.com",
+          createdAt: "2026-08-01T00:00:00.000Z",
+        },
       });
     });
 
-    test("returns 409 when email is already registered", async () => {
+    test("returns 409 with EMAIL_ALREADY_REGISTERED code when email is already registered", async () => {
       mockAuthService.register = async (input) => {
         throw new EmailAlreadyRegisteredError(input.email);
       };
@@ -68,10 +70,15 @@ describe("authentication http adapter (Tier 2)", () => {
 
       expect(response.status).toBe(409);
       const json = await response.json();
-      expect(json).toEqual({ error: "email already registered: conflict@example.com" });
+      expect(json).toEqual({
+        error: {
+          code: "EMAIL_ALREADY_REGISTERED",
+          message: "email already registered: conflict@example.com",
+        },
+      });
     });
 
-    test("returns 400 when registration input is invalid", async () => {
+    test("returns 400 with INVALID_REGISTRATION_INPUT code when registration input is invalid", async () => {
       mockAuthService.register = async () => {
         throw new InvalidRegistrationInputError("password must be at least 8 characters");
       };
@@ -86,7 +93,12 @@ describe("authentication http adapter (Tier 2)", () => {
 
       expect(response.status).toBe(400);
       const json = await response.json();
-      expect(json).toEqual({ error: "password must be at least 8 characters" });
+      expect(json).toEqual({
+        error: {
+          code: "INVALID_REGISTRATION_INPUT",
+          message: "password must be at least 8 characters",
+        },
+      });
     });
 
     test("returns 422 when schema validation fails (missing email)", async () => {
@@ -103,7 +115,7 @@ describe("authentication http adapter (Tier 2)", () => {
   });
 
   describe("POST /auth/login", () => {
-    test("returns 200 and user on successful login", async () => {
+    test("returns 200 and the user enveloped in data on successful login", async () => {
       const mockUser = {
         id: "user-123",
         email: "test@example.com",
@@ -127,13 +139,15 @@ describe("authentication http adapter (Tier 2)", () => {
       expect(response.status).toBe(200);
       const json = await response.json();
       expect(json).toEqual({
-        id: "user-123",
-        email: "test@example.com",
-        createdAt: "2026-08-01T00:00:00.000Z",
+        data: {
+          id: "user-123",
+          email: "test@example.com",
+          createdAt: "2026-08-01T00:00:00.000Z",
+        },
       });
     });
 
-    test("returns 401 on invalid credentials", async () => {
+    test("returns 401 with INVALID_CREDENTIALS code on invalid credentials", async () => {
       mockAuthService.verifyCredentials = async () => {
         throw new InvalidCredentialsError();
       };
@@ -148,7 +162,9 @@ describe("authentication http adapter (Tier 2)", () => {
 
       expect(response.status).toBe(401);
       const json = await response.json();
-      expect(json).toEqual({ error: "invalid email or password" });
+      expect(json).toEqual({
+        error: { code: "INVALID_CREDENTIALS", message: "invalid email or password" },
+      });
     });
 
     test("returns 422 when schema validation fails (missing password)", async () => {

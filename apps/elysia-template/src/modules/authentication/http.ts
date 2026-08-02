@@ -1,9 +1,11 @@
 import { Elysia, t } from "elysia";
 import {
   EmailAlreadyRegisteredError,
+  InvalidCredentialsError,
   InvalidRegistrationInputError,
   type AuthenticationService,
 } from "@repo/contracts";
+import { errorResponse, successResponse } from "../../lib/response";
 import { createAuthenticationServiceInternal } from "./internal/authentication-service";
 
 export interface AuthRoutesOptions {
@@ -19,15 +21,13 @@ export const authRoutes = (options: AuthRoutesOptions) => {
       "/auth/register",
       async ({ body, set }) => {
         try {
-          return await auth.register(body);
+          return successResponse(await auth.register(body));
         } catch (error) {
           if (error instanceof EmailAlreadyRegisteredError) {
-            set.status = 409;
-            return { error: error.message };
+            return errorResponse(set, 409, error);
           }
           if (error instanceof InvalidRegistrationInputError) {
-            set.status = 400;
-            return { error: error.message };
+            return errorResponse(set, 400, error);
           }
           throw error;
         }
@@ -43,10 +43,12 @@ export const authRoutes = (options: AuthRoutesOptions) => {
       "/auth/login",
       async ({ body, set }) => {
         try {
-          return await auth.verifyCredentials(body);
-        } catch {
-          set.status = 401;
-          return { error: "invalid email or password" };
+          return successResponse(await auth.verifyCredentials(body));
+        } catch (error) {
+          if (error instanceof InvalidCredentialsError) {
+            return errorResponse(set, 401, error);
+          }
+          throw error;
         }
       },
       {

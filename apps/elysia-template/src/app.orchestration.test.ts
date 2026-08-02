@@ -56,8 +56,8 @@ describe("app composition root (Tier 3)", () => {
     );
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json.email).toBe("e2e@example.com");
-    expect(json.id).toBeTruthy();
+    expect(json.data.email).toBe("e2e@example.com");
+    expect(json.data.id).toBeTruthy();
   });
 
   test("POST /auth/login authenticates an existing user end-to-end", async () => {
@@ -79,7 +79,7 @@ describe("app composition root (Tier 3)", () => {
     );
     expect(login.status).toBe(200);
     const json = await login.json();
-    expect(json.email).toBe("login-e2e@example.com");
+    expect(json.data.email).toBe("login-e2e@example.com");
   });
 
   test("POST /auth/register returns 409 for a duplicate email across the composed app", async () => {
@@ -101,7 +101,8 @@ describe("app composition root (Tier 3)", () => {
     );
     expect(second.status).toBe(409);
     const json = await second.json();
-    expect(json.error).toBe("email already registered: dup@example.com");
+    expect(json.error.code).toBe("EMAIL_ALREADY_REGISTERED");
+    expect(json.error.message).toBe("email already registered: dup@example.com");
   });
 
   test("unknown routes fall through to the default 404", async () => {
@@ -129,6 +130,7 @@ describe("app composition root (Tier 3)", () => {
     );
     expect(response.status).toBe(500);
     const json = await response.json();
-    expect(json.error).toBe("internal server error");
+    expect(json.error.code).toBe("INTERNAL_SERVER_ERROR");
+    expect(json.error.message).toBe("internal server error");
   });
 });

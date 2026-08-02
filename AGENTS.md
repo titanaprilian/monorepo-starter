@@ -55,7 +55,7 @@ Test files are organized into dedicated `test/` subdirectories at each level of 
 | `.boundary.test.ts` | Tier 1 | Human (immutable to agents) | `<feature>/test/` |
 | `.adapter.test.ts` | Tier 2 | Agent | `<feature>/test/` |
 | `.unit.test.ts` | Tier 2 | Agent | `<feature>/internal/test/` |
-| `.orchestration.test.ts` | Tier 3 | Human (immutable to agents) | `src/` root |
+| `.orchestration.test.ts` | Tier 3 | Human (immutable to agents) | `apps/*/src/tests/orchestration/` |
 
 ### Tier 1: Boundary Tests (`src/modules/<feature>/test/*.boundary.test.ts`)
 - **Owner**: Human
@@ -67,7 +67,7 @@ Test files are organized into dedicated `test/` subdirectories at each level of 
 - **Rules**: You are free to create, modify, or delete these tests to verify your code's correctness. Humans do not review these tests for style or format, but they must pass before merging.
 - **Goal**: White-box checks for complex internal algorithms/logic. HTTP adapter tests (`*.adapter.test.ts`) mount the feature's plugin onto a fresh Elysia instance with injected/mocked dependencies and verify schema validation and status-code mappings (e.g. Domain Error -> 400) via `app.handle()`.
 
-### Tier 3: Orchestration Tests (`src/app.orchestration.test.ts`)
+### Tier 3: Orchestration Tests (`apps/*/src/tests/orchestration/*.orchestration.test.ts`)
 - **Owner**: Human
 - **Rules**: AI agents **cannot** modify or delete these tests.
 - **Goal**: Verify cross-module interactions and transaction rollbacks at the application root level.

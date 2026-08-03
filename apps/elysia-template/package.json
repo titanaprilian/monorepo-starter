@@ -26,5 +26,9 @@
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.65.0"
   },
-  "module": "src/index.js"
+  "module": "src/index.js",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  }
 }

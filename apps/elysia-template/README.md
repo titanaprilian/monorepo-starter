@@ -1,15 +1,49 @@
-# Elysia with Bun runtime
+# Elysia Backend Service
 
-## Getting Started
-To get started with this template, simply paste this command into your terminal:
-```bash
-bun create elysia ./elysia-example
-```
+This is the Elysia backend service.
 
 ## Development
+
 To start the development server run:
 ```bash
 bun run dev
 ```
 
-Open http://localhost:3000/ with your browser to see the result.
+The server runs on http://localhost:3000/ by default.
+
+## Elysia Eden Client Setup
+
+To consume this backend in a frontend application (such as a Next.js or React app in this monorepo) using typesafe RPC with `@elysiajs/eden`:
+
+### 1. Install Dependencies
+
+In your client application, install `@elysiajs/eden`:
+
+```bash
+bun add @elysiajs/eden
+```
+
+### 2. Reference the Backend Package
+
+Ensure your client application has a dependency on this backend package (`elysia-template`) in its `package.json`:
+
+```json
+"dependencies": {
+  "elysia-template": "workspace:*"
+}
+```
+
+### 3. Instantiate the Client
+
+You can initialize the Eden treaty client and import the types-only `App` type without importing server-side dependencies:
+
+```typescript
+import { edenTreaty } from "@elysiajs/eden";
+import type { App } from "elysia-template/client";
+
+// Replace with your backend URL
+const client = edenTreaty<App>("http://localhost:3000");
+
+// Example usage:
+// const { data, error } = await client.auth.login.post({ email, password });
+```

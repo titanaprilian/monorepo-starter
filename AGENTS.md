@@ -1,6 +1,8 @@
 # Agent Context Protocol (Deep Modules Architecture)
 
-Welcome! This repository uses a **Deep Modules** architecture tailored for AI agents. This document defines the rules of engagement and the precise protocol you must follow when working within this codebase.
+> **Read application-specific rules too.** When working inside a specific application directory under `apps/` (e.g. `apps/elysia-template`), you **must** also read the `AGENTS.md` file located in that application's root for framework-specific instructions (routing, HTTP layers, test setups, etc.). If no such file exists, this root document governs. When the two documents conflict, the application-specific document takes precedence within that application's directory.
+
+Welcome! This monorepo uses a **Deep Modules** architecture tailored for AI agents. This document defines the generic rules of engagement shared across all applications in the monorepo. Framework-specific details live in each application's own `AGENTS.md`.
 
 ## The Three-Step Sequence
 
@@ -10,10 +12,10 @@ When implementing a feature or fixing a bug in a module, you **must** follow thi
    First, locate and read the relevant contracts (usually in `packages/contracts` or the module's public definitions/types) to understand the data structures and the module's public interface. This keeps your context window clean and prevents you from making incorrect assumptions about the interface.
 
 2. **Read Boundary Tests**
-   Second, read the TDD-first boundary test located at `src/modules/<feature>/test/boundary/<operation>.boundary.test.ts`. These tests are human-authored and act as the immutable specification for your target feature. Read **only** the boundary file for your specific target operation (e.g. `test/boundary/register.boundary.test.ts` when implementing `register`) — not all boundary files for the module. Make sure you understand the input/output expectations and assertions.
+   Second, read the TDD-first boundary test located at `[app_root]/src/modules/<feature>/test/boundary/<operation>.boundary.test.ts`. These tests are human-authored and act as the immutable specification for your target feature. Read **only** the boundary file for your specific target operation (e.g. `test/boundary/register.boundary.test.ts` when implementing `register`) — not all boundary files for the module. Make sure you understand the input/output expectations and assertions.
 
 3. **Modify Internals Only**
-   Third, implement the required logic. You must exclusively modify or create files inside the target module's `/internal/` directory (e.g., `src/modules/<feature>/internal/*`). The module's public entry point (`src/modules/<feature>/index.ts`) must only export the concrete implementation satisfying the public contract.
+   Third, implement the required logic. You must exclusively modify or create files inside the target module's `/internal/` directory (e.g., `[app_root]/src/modules/<feature>/internal/*`). The module's public entry point (`[app_root]/src/modules/<feature>/index.ts`) must only export the concrete implementation satisfying the public contract.
 
 ---
 
@@ -21,26 +23,7 @@ When implementing a feature or fixing a bug in a module, you **must** follow thi
 
 - **Strict Isolation**: You are explicitly forbidden from reading or modifying the internal implementation details (`/internal/` directories) of any module unrelated to your current target feature.
 - **Import Restrictions**: ESLint/tooling enforces strict boundaries. You must never import from a module's `/internal/` folder from outside that module.
-- **Entry Points**: The only allowed export point for a module is `src/modules/<feature>/index.ts`. It must export a concrete implementation adhering to a strict interface.
-
----
-
-## HTTP Layer & Routing
-
-Transport concerns live **inside** each domain module but must never leak out of it. Routes are built as Elysia plugins and composed at a single root. Follow this protocol whenever you add or modify any HTTP surface.
-
-- **Colocated HTTP Adapters (`src/modules/<feature>/http.ts`)**: Every module that exposes an API contains an `http.ts` file that builds and exports an Elysia plugin containing only that feature's routes. Import the feature's domain services from the module's `/internal/` directory, or accept them via the plugin's options object (e.g. `{ db }`, `{ authService }`), so the adapter stays self-contained and testable.
-- **Response Helpers (`apps/elysia-template/src/lib/response.ts`)**: All route handlers MUST build responses through the `successResponse` and `errorResponse` helpers. `successResponse<T>(data)` returns the success envelope `{ data: T }`. `errorResponse(set, status, error)` sets `set.status` for you and returns `{ error: { code, message } }`, deriving `code` automatically from the error class name (e.g. `EmailAlreadyRegisteredError` → `EMAIL_ALREADY_REGISTERED`). Manual `set.status` + inline `{ error: ... }` construction is forbidden in route handlers — every success and error branch must go through the helpers.
-- **Never Export Adapters Through Public Barrels**: A module's `index.ts` must **never** export `http.ts`, its route builders, or their types. The module's public boundary is strictly protocol-agnostic; background jobs and CLI scripts importing the module must not gain a dependency on Elysia.
-- **Composition Root (`src/app.ts`)**: All feature plugins are chained onto a single Elysia instance in `src/app.ts` through a `createApp(deps)` factory. The factory takes dependencies explicitly (e.g. `{ db, auth }`) for dependency injection and testing, applies global plugins and error handling (CORS, `.onError`, etc.) inside the factory, and exports `type App = ReturnType<typeof createApp>`. It must **never** call `.listen()`.
-- **Process-Only Entry Point (`src/index.ts`)**: `src/index.ts` is strictly the process boundary. It imports `createApp` from `src/app.ts`, constructs and wires the real dependencies, reads environment variables (e.g. `PORT`), binds the server via `app.listen()`, and handles process lifecycle (e.g. startup logging). Never define routes here.
-
-### Explicitly Forbidden
-
-- Exporting a module's `http.ts` (or any HTTP adapter) from `src/modules/<feature>/index.ts`.
-- Registering routes directly in `src/index.ts`, or anywhere other than a module's `http.ts` and the `app.ts` composition root.
-- Calling `.listen()` anywhere except the process entry point (`src/index.ts`).
-- Bypassing the `createApp` factory by composing feature plugins elsewhere. Feature `http.ts` files are imported by path (e.g. `import { authRoutes } from "./modules/authentication/http"`) only at the composition root.
+- **Entry Points**: The only allowed export point for a module is `[app_root]/src/modules/<feature>/index.ts`. It must export a concrete implementation adhering to a strict interface.
 
 ---
 
@@ -55,19 +38,30 @@ Test files are organized into dedicated `test/` subdirectories at each level of 
 | `.boundary.test.ts` | Tier 1 | Human (immutable to agents) | `<feature>/test/boundary/` |
 | `.adapter.test.ts` | Tier 2 | Agent | `<feature>/test/adapter/` |
 | `.unit.test.ts` | Tier 2 | Agent | `<feature>/internal/test/` |
-| `.orchestration.test.ts` | Tier 3 | Human (immutable to agents) | `apps/*/src/tests/orchestration/` (one per module) |
+| `.orchestration.test.ts` | Tier 3 | Human (immutable to agents) | `[app_root]/src/tests/orchestration/` (one per module) |
 
-### Tier 1: Boundary Tests (`src/modules/<feature>/test/boundary/*.boundary.test.ts`)
+### Tier 1: Boundary Tests (`[app_root]/src/modules/<feature>/test/boundary/*.boundary.test.ts`)
 - **Owner**: Human
 - **Rules**: AI agents **cannot** modify or delete these tests. They serve as the source of truth for features.
 - **Goal**: Validate public contracts and interfaces (Black-box).
 
-### Tier 2: Internal Tests (`src/modules/<feature>/internal/test/*.unit.test.ts` and `src/modules/<feature>/test/adapter/*.adapter.test.ts`)
+### Tier 2: Internal Tests (`[app_root]/src/modules/<feature>/internal/test/*.unit.test.ts` and `[app_root]/src/modules/<feature>/test/adapter/*.adapter.test.ts`)
 - **Owner**: AI Agent (You!)
 - **Rules**: You are free to create, modify, or delete these tests to verify your code's correctness. Humans do not review these tests for style or format, but they must pass before merging.
-- **Goal**: White-box checks for complex internal algorithms/logic. HTTP adapter tests (`src/modules/<feature>/test/adapter/*.adapter.test.ts`) mount the feature's plugin onto a fresh Elysia instance with injected/mocked dependencies and verify schema validation and status-code mappings (e.g. Domain Error -> 400) via `app.handle()`.
+- **Goal**: White-box checks for complex internal algorithms/logic. Adapter tests validate the module's external-facing adapter (e.g. HTTP routes, CLI commands, background jobs) by mounting it against injected/mocked dependencies and verifying schema validation and error-to-status mappings.
 
-### Tier 3: Orchestration Tests (`apps/*/src/tests/orchestration/<module>.orchestration.test.ts`)
+### Tier 3: Orchestration Tests (`[app_root]/src/tests/orchestration/<module>.orchestration.test.ts`)
 - **Owner**: Human
 - **Rules**: AI agents **cannot** modify or delete these tests.
 - **Goal**: Verify cross-module interactions and transaction rollbacks at the application root level.
+
+---
+
+## Platform Mappings
+
+The Deep Modules architecture maps onto each framework in the monorepo as follows. Consult the application-specific `AGENTS.md` (if present) for authoritative details within that application.
+
+| Environment | Public seam | Internal logic | Routing / adapter | Composition root |
+| --- | --- | --- | --- | --- |
+| **Elysia (Backend)** | `src/modules/<feature>/index.ts` | `src/modules/<feature>/internal/` | `src/modules/<feature>/http.ts` (Elysia plugin) | `src/app.ts` (`createApp` factory) |
+| **Next.js (Frontend)** | `src/modules/<feature>/index.ts` exporting components/hooks | `src/modules/<feature>/internal/` (UI components, local state, mappers) | Page / Layout components | Page / Layout components (thin composition roots) |

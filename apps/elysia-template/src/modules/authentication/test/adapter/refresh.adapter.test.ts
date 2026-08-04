@@ -134,7 +134,7 @@ describe("authentication http adapter: refresh", () => {
   test("accepts token from cookie", async () => {
     let receivedToken = "";
     mockAuthService.refresh = async (token) => {
-      receivedToken = token;
+      receivedToken = token as string;
       return {
         user: {
           id: "user-123",

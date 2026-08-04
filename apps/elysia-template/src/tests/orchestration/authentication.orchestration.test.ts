@@ -234,6 +234,171 @@ describe("app composition root (Tier 3)", () => {
   });
 
   // ---------------------------------------------------------------------
+  // POST /auth/logout-all
+  // ---------------------------------------------------------------------
+  test("POST /auth/logout-all revokes every session for the authenticated caller end-to-end", async () => {
+    const register = await app.handle(
+      new Request("http://localhost/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Logout All E2E",
+          email: "logoutall-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    expect(register.status).toBe(200);
+
+    // two separate sessions for the same user — e.g. two devices
+    const loginOne = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({
+          email: "logoutall-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    const loginTwo = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({
+          email: "logoutall-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    expect(loginOne.status).toBe(200);
+    expect(loginTwo.status).toBe(200);
+
+    const sessionOne = (await loginOne.json()).data.tokens;
+    const sessionTwo = (await loginTwo.json()).data.tokens;
+
+    const logoutAllResponse = await app.handle(
+      new Request("http://localhost/auth/logout-all", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${sessionOne.accessToken}` },
+      }),
+    );
+    expect(logoutAllResponse.status).toBe(200);
+
+    // both sessions — including the one that made the call — must be dead.
+    // This is the meaningful end-to-end assertion: it proves logoutAll's
+    // effect is actually enforced on the real refresh path, not just
+    // written to a column nothing reads.
+    const refreshOne = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: sessionOne.refreshToken }),
+      }),
+    );
+    const refreshTwo = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: sessionTwo.refreshToken }),
+      }),
+    );
+    expect(refreshOne.status).toBe(401);
+    expect(refreshTwo.status).toBe(401);
+  });
+
+  test("POST /auth/logout-all rejects an unauthenticated request", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/auth/logout-all", {
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  test("POST /auth/logout-all cannot be used to revoke another user's sessions via a spoofed id", async () => {
+    const registerAttacker = await app.handle(
+      new Request("http://localhost/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Attacker",
+          email: "attacker-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    const registerVictim = await app.handle(
+      new Request("http://localhost/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Victim",
+          email: "victim-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    expect(registerAttacker.status).toBe(200);
+    expect(registerVictim.status).toBe(200);
+    const victimId = (await registerVictim.json()).data.id;
+
+    const attackerLogin = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({
+          email: "attacker-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    const victimLogin = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({
+          email: "victim-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    const attackerTokens = (await attackerLogin.json()).data.tokens;
+    const victimTokens = (await victimLogin.json()).data.tokens;
+
+    // attacker is authenticated as themselves but tries to smuggle the
+    // victim's id into the request body, hoping a naive handler trusts it
+    // instead of deriving the target user from the access token.
+    const spoofedResponse = await app.handle(
+      new Request("http://localhost/auth/logout-all", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${attackerTokens.accessToken}`,
+        },
+        body: JSON.stringify({ userId: victimId }),
+      }),
+    );
+    // acceptable outcomes: the body field is silently ignored (200,
+    // attacker logs themselves out), or it's explicitly rejected (400/403).
+    // A 500 or an outcome that revokes the victim's session is a failure.
+    expect([200, 400, 403]).toContain(spoofedResponse.status);
+
+    // the decisive assertion: whatever the status code, the victim's real
+    // session must still be alive. This is what an IDOR would actually
+    // break, and it's the only check here that can't be faked by a
+    // handler that just returns the "right-looking" status code.
+    const victimRefresh = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: victimTokens.refreshToken }),
+      }),
+    );
+    expect(victimRefresh.status).toBe(200);
+  });
+
+  // ---------------------------------------------------------------------
   // Routing / global error handling (cross-cutting, not endpoint-specific)
   // ---------------------------------------------------------------------
   test("unknown routes fall through to the default 404", async () => {

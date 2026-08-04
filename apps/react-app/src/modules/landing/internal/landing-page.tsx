@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 
-export default function App() {
+export function LandingPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
       <section className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-16">

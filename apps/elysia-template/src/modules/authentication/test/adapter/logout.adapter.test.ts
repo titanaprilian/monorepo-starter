@@ -22,6 +22,9 @@ describe("authentication http adapter: logout", () => {
     logoutAll: async () => {
       throw new Error("Mock not configured");
     },
+    refresh: async () => {
+      throw new Error("Mock not configured");
+    },
   };
 
   const app = new Elysia().use(authRoutes({ authService: mockAuthService }));

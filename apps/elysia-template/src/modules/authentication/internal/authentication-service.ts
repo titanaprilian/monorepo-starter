@@ -6,6 +6,7 @@ import {
   EmailAlreadyRegisteredError,
   InvalidCredentialsError,
   InvalidRegistrationInputError,
+  UnauthorizedError,
   type AuthenticationService,
   type RegisterInput,
   type User,
@@ -191,6 +192,72 @@ export function createAuthenticationServiceInternal<
         .update(refreshTokens)
         .set({ revoked: true })
         .where(eq(refreshTokens.userId, userId));
+    },
+
+    async refresh(token: string): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string } }> {
+      const hashedToken = hashRefreshToken(token);
+
+      const [tokenRecord] = await db
+        .select()
+        .from(refreshTokens)
+        .where(eq(refreshTokens.token, hashedToken));
+
+      if (!tokenRecord) {
+        throw new UnauthorizedError("invalid or expired refresh token");
+      }
+
+      if (new Date(tokenRecord.expiresAt) < new Date()) {
+        throw new UnauthorizedError("invalid or expired refresh token");
+      }
+
+      if (tokenRecord.revoked) {
+        // Reuse detected! Revoke all tokens for this user.
+        await db
+          .update(refreshTokens)
+          .set({ revoked: true })
+          .where(eq(refreshTokens.userId, tokenRecord.userId));
+        throw new UnauthorizedError("refresh token has been revoked");
+      }
+
+      // Mark the current token as revoked
+      await db
+        .update(refreshTokens)
+        .set({ revoked: true })
+        .where(eq(refreshTokens.token, hashedToken));
+
+      const [userRecord] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, tokenRecord.userId));
+
+      if (!userRecord) {
+        throw new UnauthorizedError("user not found");
+      }
+
+      if (userRecord.lockedUntil && new Date(userRecord.lockedUntil) > new Date()) {
+        throw new UnauthorizedError("account is locked");
+      }
+
+      const user = toUser(userRecord);
+      const accessToken = signJwt({ sub: user.id, email: user.email, name: user.name });
+      const rawRefreshToken = randomUUID();
+      const newHashedToken = hashRefreshToken(rawRefreshToken);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      await db.insert(refreshTokens).values({
+        token: newHashedToken,
+        userId: user.id,
+        expiresAt,
+        revoked: false,
+      });
+
+      return {
+        user,
+        tokens: {
+          accessToken,
+          refreshToken: rawRefreshToken,
+        },
+      };
     },
   };
 }

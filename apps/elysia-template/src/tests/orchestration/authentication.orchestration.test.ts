@@ -258,6 +258,9 @@ describe("app composition root (Tier 3)", () => {
       logoutAll: async () => {
         throw new Error("database exploded");
       },
+      refresh: async () => {
+        throw new Error("database exploded");
+      },
     };
 
     const failingApp = createApp({ db, auth: failingAuth });

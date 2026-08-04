@@ -11,4 +11,4 @@ If a _fact_ can be found by exploring the environment (filesystem, tools, etc.),
 
 Do not act on it until I confirm we have reached a shared understanding.
 
-Do not implement any code yet after the grilling session is completed, we will create a new spec using /to-spec skills after the grilling is completed.
+Do not implement any code yet after the grilling session is completed, we will create a new spec using /to-spec skills after the grilling is completed. Prompt the user first before execute the /to-spec skills.

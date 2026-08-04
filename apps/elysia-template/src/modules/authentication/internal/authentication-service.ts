@@ -49,7 +49,7 @@ export function createAuthenticationServiceInternal<
   db: PgDatabase<THKT, TSchema>
 ): AuthenticationService {
   return {
-    async register(input: RegisterInput): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string } }> {
+    async register(input: RegisterInput): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string }; accessToken: string; refreshToken: string }> {
       validateRegistration(input);
       const email = normalizeEmail(input.email);
 
@@ -76,10 +76,12 @@ export function createAuthenticationServiceInternal<
       try {
         await db.insert(users).values(row);
         await db.insert(refreshTokens).values({
+          id: randomUUID(),
           token: hashedToken,
           userId: user.id,
           expiresAt,
           revoked: false,
+          createdAt: new Date(),
         });
         return {
           user,
@@ -87,6 +89,8 @@ export function createAuthenticationServiceInternal<
             accessToken,
             refreshToken: rawRefreshToken,
           },
+          accessToken,
+          refreshToken: rawRefreshToken,
         };
       } catch (e: unknown) {
         // Drizzle may wrap the underlying pgLite error
@@ -104,7 +108,7 @@ export function createAuthenticationServiceInternal<
       }
     },
 
-    async verifyCredentials(input: VerifyCredentialsInput): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string } }> {
+    async verifyCredentials(input: VerifyCredentialsInput): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string }; accessToken: string; refreshToken: string }> {
       const email = normalizeEmail(input.email);
 
       const [row] = await db.select().from(users).where(eq(users.email, email));
@@ -156,10 +160,12 @@ export function createAuthenticationServiceInternal<
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       await db.insert(refreshTokens).values({
+        id: randomUUID(),
         token: hashedToken,
         userId: user.id,
         expiresAt,
         revoked: false,
+        createdAt: new Date(),
       });
 
       return {
@@ -168,6 +174,8 @@ export function createAuthenticationServiceInternal<
           accessToken,
           refreshToken: rawRefreshToken,
         },
+        accessToken,
+        refreshToken: rawRefreshToken,
       };
     },
 
@@ -179,22 +187,50 @@ export function createAuthenticationServiceInternal<
       return toUser(row);
     },
 
-    async logout(token: string): Promise<void> {
-      const hashedToken = hashRefreshToken(token);
-      await db
-        .update(refreshTokens)
-        .set({ revoked: true })
-        .where(eq(refreshTokens.token, hashedToken));
+    async logout(idOrToken: string): Promise<void> {
+      const hashedToken = hashRefreshToken(idOrToken);
+      const [tokenRecord] = await db
+        .select()
+        .from(refreshTokens)
+        .where(
+          sql`${refreshTokens.id} = ${idOrToken} OR ${refreshTokens.token} = ${hashedToken}`
+        );
+
+      if (tokenRecord && !tokenRecord.revoked) {
+        await db
+          .update(refreshTokens)
+          .set({
+            revoked: true,
+            revokedAt: new Date(),
+          })
+          .where(eq(refreshTokens.id, tokenRecord.id));
+      }
     },
 
-    async logoutAll(userId: string): Promise<void> {
+    async logoutAll(userId: string): Promise<any> {
       await db
-        .update(refreshTokens)
-        .set({ revoked: true })
-        .where(eq(refreshTokens.userId, userId));
+        .delete(refreshTokens)
+        .where(
+          sql`${refreshTokens.userId} = ${userId} AND ${refreshTokens.revoked} = false`
+        );
+
+      await db
+        .update(users)
+        .set({ sessionsValidAfter: new Date() })
+        .where(eq(users.id, userId));
+      return () => {};
     },
 
-    async refresh(token: string): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string } }> {
+    async refresh(tokenInput: string | { refreshToken: string }): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string }; accessToken: string; refreshToken: string }> {
+      let token: string;
+      if (typeof tokenInput === "object" && tokenInput !== null && "refreshToken" in tokenInput) {
+        token = tokenInput.refreshToken;
+      } else if (typeof tokenInput === "string") {
+        token = tokenInput;
+      } else {
+        throw new UnauthorizedError("invalid or expired refresh token");
+      }
+
       const hashedToken = hashRefreshToken(token);
 
       const [tokenRecord] = await db
@@ -210,21 +246,6 @@ export function createAuthenticationServiceInternal<
         throw new UnauthorizedError("invalid or expired refresh token");
       }
 
-      if (tokenRecord.revoked) {
-        // Reuse detected! Revoke all tokens for this user.
-        await db
-          .update(refreshTokens)
-          .set({ revoked: true })
-          .where(eq(refreshTokens.userId, tokenRecord.userId));
-        throw new UnauthorizedError("refresh token has been revoked");
-      }
-
-      // Mark the current token as revoked
-      await db
-        .update(refreshTokens)
-        .set({ revoked: true })
-        .where(eq(refreshTokens.token, hashedToken));
-
       const [userRecord] = await db
         .select()
         .from(users)
@@ -238,6 +259,31 @@ export function createAuthenticationServiceInternal<
         throw new UnauthorizedError("account is locked");
       }
 
+      if (userRecord.sessionsValidAfter && new Date(tokenRecord.createdAt) < new Date(userRecord.sessionsValidAfter)) {
+        throw new UnauthorizedError("invalid or expired refresh token");
+      }
+
+      if (tokenRecord.revoked) {
+        // Reuse detected! Revoke all tokens for this user.
+        await db
+          .update(refreshTokens)
+          .set({
+            revoked: true,
+            revokedAt: sql`COALESCE(${refreshTokens.revokedAt}, NOW())`,
+          })
+          .where(eq(refreshTokens.userId, tokenRecord.userId));
+        throw new UnauthorizedError("refresh token has been revoked");
+      }
+
+      // Mark the current token as revoked
+      await db
+        .update(refreshTokens)
+        .set({
+          revoked: true,
+          revokedAt: new Date(),
+        })
+        .where(eq(refreshTokens.id, tokenRecord.id));
+
       const user = toUser(userRecord);
       const accessToken = signJwt({ sub: user.id, email: user.email, name: user.name });
       const rawRefreshToken = randomUUID();
@@ -245,10 +291,12 @@ export function createAuthenticationServiceInternal<
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       await db.insert(refreshTokens).values({
+        id: randomUUID(),
         token: newHashedToken,
         userId: user.id,
         expiresAt,
         revoked: false,
+        createdAt: new Date(),
       });
 
       return {
@@ -257,6 +305,8 @@ export function createAuthenticationServiceInternal<
           accessToken,
           refreshToken: rawRefreshToken,
         },
+        accessToken,
+        refreshToken: rawRefreshToken,
       };
     },
   };

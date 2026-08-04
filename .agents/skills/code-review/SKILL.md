@@ -32,8 +32,13 @@ You need three things before you can judge anything:
 
 **Passes** — coding standards hold, tests pass, every acceptance criterion has evidence, and it matches the spec:
 
-- Commit the change yourself. Use a message that references the ticket, e.g. `Closes #<number>: <summary>`, so GitHub auto-links (and, if configured, auto-closes) the issue on merge — check the project's actual commit-message convention first (conventional commits, ticket-prefix, etc.) rather than assuming.
-- Leave a short comment on the ticket summarizing what was verified (`gh issue comment <number> --body-file ...` — see gh-cli skill for the safe heredoc pattern). Don't close the ticket yourself unless the project's workflow expects you to; closing-via-commit-message is usually enough.
+- Commit the change yourself. Use a message that references the ticket, e.g. `Implemented #<number>: <summary>`. Do not use "Closes" in the commit message because we will close the ticket manually right now to unblock subsequent work.
+- Leave a short comment on the ticket summarizing what was verified (`gh issue comment <number> --body-file ...`).
+- **Close the ticket**: Immediately close the ticket using the CLI (`gh issue close <number>`) so that the next dependent ticket in the sequence is unblocked for the next agent pass. We batch our pushes, so closing via CLI is required.
+- **Parent Spec/PRD Update**: 
+  - ALWAYS leave a short comment on the parent spec/PRD (if one exists) indicating that this specific ticket (`#<number>`) has been completed, verified, and closed locally.
+  - **Spec completion check**: Check if this ticket is the final open ticket belonging to its parent spec/PRD. If all other tickets for the spec are closed (including the one you just closed):
+    - Instruct the orchestrator (or the user) that the spec is fully implemented and it is time to run the `/push-to-github` skill.
 
 **Fails** — anything above doesn't hold:
 
@@ -41,4 +46,4 @@ You need three things before you can judge anything:
 - Leave a clear review comment on the ticket (`gh issue comment`) describing exactly what's missing or wrong, specific enough that a fresh `implement` pass could pick it up without re-deriving your reasoning.
 - Hand back to the user or the orchestrator's retry loop rather than fixing it yourself — this skill's job is to gate and report, not to quietly rewrite someone else's implementation. Small, obviously-mechanical fixes (a missed formatting rule, an unused import) are a judgment call; anything that touches logic or intent goes back for a real redo.
 
-Do NOT close or modify the parent spec/PRD issue in either case.
+Do NOT close the parent spec/PRD issue directly via the CLI in either case; allow the commit message or PR merge to close it. You MAY comment on the parent spec/PRD to indicate completion as described above.

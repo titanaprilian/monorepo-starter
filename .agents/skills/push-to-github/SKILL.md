@@ -43,7 +43,9 @@ gh pr create \
   --head <branch-name>
 ```
 
-- PR body should reference the ticket/spec it closes, e.g. `Closes #<ticket-number>`, so merging auto-closes it. Summarize what changed and how it was verified (tests run, acceptance criteria met) — pull this from what `code-review` already checked, don't re-derive it from scratch.
+- PR body should reference the parent spec/PRD it closes, e.g. `Closes #<parent-spec-number>`, so merging auto-closes the main feature spec. Summarize what changed and how it was verified (tests run, acceptance criteria met) across all the tickets batched in this PR.
+- **Parent Spec/PRD Update**: 
+  - ALWAYS leave a short comment on the parent spec/PRD issue (`gh issue comment`) containing a link to this newly created PR, indicating that the batched work is now in review and will close the spec upon merge.
 - Report the PR URL back to the user. Don't merge it yourself — opening the PR is the end of this skill's job; merging is a separate human (or explicitly separate) decision.
 
 ## Never

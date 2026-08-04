@@ -15,6 +15,7 @@ This skill takes the current conversation context and codebase understanding and
 Check with the user that these seams match their expectations.
 
 3. Write the spec using the template below, then publish it to the project's GitHub Issues using the /gh-cli skill.
+   - **CRITICAL**: You MUST explicitly add the `spec` label to the issue when creating it via the `gh` CLI (e.g., `gh issue create ... --label "spec"`). If the label does not exist, create it first using `gh label create spec`.
 
 <spec-template>
 

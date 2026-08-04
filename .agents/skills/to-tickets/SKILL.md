@@ -55,7 +55,12 @@ Iterate until the user approves the breakdown.
 
 ### 5. Publish the tickets to the configured tracker
 
-Publish the approved tickets to GitHub, one issue per ticket, in dependency order (blockers first), using the `gh` CLI. Consult the **gh-cli** skill for the mechanics (auth/repo preflight, safe `--body-file` heredocs, duplicate checks, capturing the returned URL) — don't hand-roll `gh` invocations here. Use the `<issue-template>` below for each body. Use native GitHub sub-issue/blocking relationships where available; otherwise set each ticket's "Blocked by" section to reference the blocking issue numbers/URLs. Apply the `ready-for-agent` label to each (create the label first via `gh label create` if it doesn't exist yet, per the gh-cli skill) unless instructed otherwise — the tickets are agent-grabbable by construction.
+Publish the approved tickets to GitHub, one issue per ticket, in dependency order (blockers first), using the `gh` CLI. Consult the **gh-cli** skill for the mechanics (auth/repo preflight, safe `--body-file` heredocs, duplicate checks, capturing the returned URL) — don't hand-roll `gh` invocations here. Use the `<issue-template>` below for each body. 
+
+**CRITICAL RULES FOR TICKET CREATION:**
+1. **Numbering suffix:** You MUST explicitly prefix the title of each ticket issue with its sequential number from the breakdown so the user can easily identify the order in the issue tracker (e.g., `1 — Scaffold Foundation`, `2 — Wire State Management`).
+2. **Labeling:** Apply the `ticket` label to each issue (create the label first via `gh label create ticket` if it doesn't exist yet, per the gh-cli skill) unless instructed otherwise. **DO NOT** use `ready-for-agent`. We only use `spec` and `ticket` labels.
+3. Use native GitHub sub-issue/blocking relationships where available; otherwise set each ticket's "Blocked by" section to reference the blocking issue numbers/URLs.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
@@ -69,7 +74,7 @@ Do NOT close or modify any parent issue.
 
 **Blocked by:** the numbers/titles of the tickets that gate this one, or "None — can start immediately".
 
-**Status:** ready-for-agent
+**Status:** ticket
 
 - [ ] Acceptance criterion 1
 - [ ] Acceptance criterion 2

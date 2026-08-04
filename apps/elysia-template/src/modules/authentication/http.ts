@@ -177,5 +177,62 @@ export const authRoutes = (options: AuthRoutesOptions) => {
           return errorResponse(set, 401, new UnauthorizedError("unauthorized"));
         }
       }
+    )
+    .post(
+      "/auth/refresh",
+      async ({ body, set, headers, cookie: { refreshToken } }) => {
+        try {
+          const bodyTyped = body as Record<string, unknown> | undefined;
+          const token = bodyTyped?.refreshToken || refreshToken?.value;
+          if (!token || typeof token !== "string") {
+            return errorResponse(
+              set,
+              401,
+              new UnauthorizedError("refresh token is required")
+            );
+          }
+
+          const result = await auth.refresh(token);
+          const isMobile = headers["x-client-type"] === "mobile";
+
+          if (isMobile) {
+            return successResponse({
+              ...result.user,
+              user: result.user,
+              tokens: {
+                accessToken: result.tokens.accessToken,
+                refreshToken: result.tokens.refreshToken,
+              },
+            });
+          } else {
+            refreshToken.set({
+              value: result.tokens.refreshToken,
+              httpOnly: true,
+              secure: true,
+              path: "/",
+              sameSite: "lax",
+            });
+            return successResponse({
+              ...result.user,
+              user: result.user,
+              tokens: {
+                accessToken: result.tokens.accessToken,
+              },
+            });
+          }
+        } catch (error) {
+          if (error instanceof UnauthorizedError) {
+            return errorResponse(set, 401, error);
+          }
+          throw error;
+        }
+      },
+      {
+        body: t.Optional(
+          t.Object({
+            refreshToken: t.Optional(t.String()),
+          })
+        ),
+      }
     );
 };

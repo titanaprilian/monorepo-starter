@@ -208,7 +208,7 @@ export function createAuthenticationServiceInternal<
       }
     },
 
-    async logoutAll(userId: string): Promise<any> {
+    async logoutAll(userId: string): Promise<void> {
       await db
         .delete(refreshTokens)
         .where(
@@ -219,7 +219,6 @@ export function createAuthenticationServiceInternal<
         .update(users)
         .set({ sessionsValidAfter: new Date() })
         .where(eq(users.id, userId));
-      return () => {};
     },
 
     async refresh(tokenInput: string | { refreshToken: string }): Promise<{ user: User; tokens: { accessToken: string; refreshToken: string }; accessToken: string; refreshToken: string }> {

@@ -146,7 +146,7 @@ describe("authentication: refresh", () => {
   });
 
   test("reuse detection revokes tokens across independent sessions, not just the same chain", async () => {
-    const { user, tokens: sessionOneTokens } = await auth.register({
+    const { tokens: sessionOneTokens } = await auth.register({
       name: "Refresh Cross Session",
       email: "refresh_cross_session@example.com",
       password: "password123",

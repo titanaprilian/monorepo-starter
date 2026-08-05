@@ -94,7 +94,7 @@ describe("authentication: logout-all — security", () => {
         password: "hunter2hunter",
       });
 
-      await expect(auth.logoutAll(user.id)).resolves.not.toThrow();
+      await expect(auth.logoutAll(user.id)).resolves.toBeUndefined();
 
       const rows = await db
         .select()

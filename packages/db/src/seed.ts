@@ -10,13 +10,13 @@ export async function seed<
   await db.delete(users);
   await db.delete(system);
 
-  // Insert deterministic base user data
+  // Insert deterministic base user data (password is "password123")
   await db.insert(users).values([
     {
       id: "user-1",
       name: "Test User",
       email: "test@example.com",
-      passwordHash: "$2a$10$abcdefghijklmnopqrstuu",
+      passwordHash: "$2b$10$/W0WAoqhJkNoV5..MEq/JujDUTCAusr5xBksbG6JLv84XMq2H4bay",
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       failedAttempts: 0,
       lockedUntil: null,
@@ -26,7 +26,7 @@ export async function seed<
       id: "user-2",
       name: "Standard User",
       email: "user@example.com",
-      passwordHash: "$2a$10$abcdefghijklmnopqrstuv",
+      passwordHash: "$2b$10$/W0WAoqhJkNoV5..MEq/JujDUTCAusr5xBksbG6JLv84XMq2H4bay",
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       failedAttempts: 0,
       lockedUntil: null,

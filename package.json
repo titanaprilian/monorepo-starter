@@ -8,7 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run --cwd apps/backend dev",
+    "dev": "bun run --filter './apps/*' dev",
+    "dev:backend": "bun run --cwd apps/backend dev",
+    "dev:web": "bun run --cwd apps/web dev",
     "test": "bun test"
   }
 }

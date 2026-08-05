@@ -6,7 +6,7 @@ A high-performance monorepo starter using [Bun](https://bun.sh) and [Elysia](htt
 
 - `apps/` — Application entrypoints and deployment targets.
   - `apps/backend` — Elysia server template.
-  - `apps/react-app` — React application template.
+  - `apps/web` — React application template.
 - `packages/` — Shared libraries, databases, and schemas.
 - `AGENTS.md` — The Agent Context Protocol specifying the development flow for AI agents.
 

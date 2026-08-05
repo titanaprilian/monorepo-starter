@@ -1,6 +1,6 @@
 # Agent Context Protocol (React App)
 
-This document defines the framework-specific rules for the Vite + React frontend (`apps/react-app`). It extends the root monorepo `AGENTS.md`. In case of conflict, this file takes precedence within `apps/react-app`.
+This document defines the framework-specific rules for the Vite + React frontend (`apps/web`). It extends the root monorepo `AGENTS.md`. In case of conflict, this file takes precedence within `apps/web`.
 
 ## Deep Modules Implementation
 
@@ -46,7 +46,7 @@ Agents are free to create, modify, or delete these tests to ensure their logic w
 
 ## Design System
 
-All UI work must adhere strictly to the "Structured Console" design direction detailed in `apps/react-app/DESIGN.md`.
+All UI work must adhere strictly to the "Structured Console" design direction detailed in `apps/web/DESIGN.md`.
 - Read `DESIGN.md` before generating or modifying UI components.
 - Rely on Tailwind utility classes and CSS custom properties defined in `src/index.css`.
 - Utilize the unstyled, copy-paste headless architecture (shadcn/ui pattern) located in `src/components/ui/`.

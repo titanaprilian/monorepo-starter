@@ -1,5 +1,5 @@
 {
-  "name": "elysia-template",
+  "name": "@repo/backend",
   "version": "1.0.50",
   "type": "module",
   "scripts": {

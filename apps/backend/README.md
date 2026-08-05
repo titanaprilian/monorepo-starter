@@ -25,11 +25,11 @@ bun add @elysiajs/eden
 
 ### 2. Reference the Backend Package
 
-Ensure your client application has a dependency on this backend package (`elysia-template`) in its `package.json`:
+Ensure your client application has a dependency on this backend package (`@repo/backend`) in its `package.json`:
 
 ```json
 "dependencies": {
-  "elysia-template": "workspace:*"
+  "@repo/backend": "workspace:*"
 }
 ```
 
@@ -39,7 +39,7 @@ You can initialize the Eden treaty client and import the types-only `App` type w
 
 ```typescript
 import { edenTreaty } from "@elysiajs/eden";
-import type { App } from "elysia-template/client";
+import type { App } from "@repo/backend/client";
 
 // Replace with your backend URL
 const client = edenTreaty<App>("http://localhost:3000");

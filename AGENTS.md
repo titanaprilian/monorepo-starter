@@ -1,6 +1,6 @@
 # Agent Context Protocol (Deep Modules Architecture)
 
-> **Read application-specific rules too.** When working inside a specific application directory under `apps/` (e.g. `apps/elysia-template`), you **must** also read the `AGENTS.md` file located in that application's root for framework-specific instructions (routing, HTTP layers, test setups, etc.). If no such file exists, this root document governs. When the two documents conflict, the application-specific document takes precedence within that application's directory.
+> **Read application-specific rules too.** When working inside a specific application directory under `apps/` (e.g. `apps/backend`), you **must** also read the `AGENTS.md` file located in that application's root for framework-specific instructions (routing, HTTP layers, test setups, etc.). If no such file exists, this root document governs. When the two documents conflict, the application-specific document takes precedence within that application's directory.
 
 Welcome! This monorepo uses a **Deep Modules** architecture tailored for AI agents. This document defines the generic rules of engagement shared across all applications in the monorepo. Framework-specific details live in each application's own `AGENTS.md`.
 

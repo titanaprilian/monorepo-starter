@@ -1,6 +1,6 @@
 # Agent Context Protocol (Elysia Backend)
 
-This document defines the Elysia-specific rules of engagement for agents working in `apps/elysia-template`. Read it **in addition to** the root `AGENTS.md`, which covers the generic monorepo "Deep Modules" architecture. When rules conflict, this app-specific document takes precedence within this directory.
+This document defines the Elysia-specific rules of engagement for agents working in `apps/backend`. Read it **in addition to** the root `AGENTS.md`, which covers the generic monorepo "Deep Modules" architecture. When rules conflict, this app-specific document takes precedence within this directory.
 
 ## HTTP Layer & Routing
 

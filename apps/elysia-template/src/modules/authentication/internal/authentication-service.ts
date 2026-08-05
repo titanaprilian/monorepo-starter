@@ -7,6 +7,7 @@ import {
   InvalidCredentialsError,
   InvalidRegistrationInputError,
   UnauthorizedError,
+  UserNotFoundError,
   type AuthenticationService,
   type RegisterInput,
   type User,
@@ -182,7 +183,7 @@ export function createAuthenticationServiceInternal<
     async getUserProfile(userId: string): Promise<User> {
       const [row] = await db.select().from(users).where(eq(users.id, userId));
       if (!row) {
-        throw new Error("User not found");
+        throw new UserNotFoundError();
       }
       return toUser(row);
     },

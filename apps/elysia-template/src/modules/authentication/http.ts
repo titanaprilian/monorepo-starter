@@ -5,6 +5,7 @@ import {
   InvalidCredentialsError,
   InvalidRegistrationInputError,
   UnauthorizedError,
+  UserNotFoundError,
   type AuthenticationService,
 } from "@repo/contracts";
 import { errorResponse, successResponse } from "../../lib/response";
@@ -131,7 +132,10 @@ export const authRoutes = (options: AuthRoutesOptions) => {
           const payload = verifyJwt(token);
           const user = await auth.getUserProfile(payload.sub);
           return successResponse(user);
-        } catch {
+        } catch (error) {
+          if (error instanceof UserNotFoundError) {
+            return errorResponse(set, 404, error);
+          }
           return errorResponse(set, 401, new UnauthorizedError("unauthorized"));
         }
       }

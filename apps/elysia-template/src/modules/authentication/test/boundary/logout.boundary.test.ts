@@ -75,5 +75,55 @@ describe("authentication: logout", () => {
         .where(eq(refreshTokens.userId, bystander.id));
       for (const row of rows) expect(row.revoked).toBe(false);
     });
+
+    test("a token revoked by logout can no longer be used to refresh", async () => {
+      const { tokens } = await auth.register({
+        name: "Reject Alice",
+        email: "reject-logout@example.com",
+        password: "hunter2hunter",
+      });
+
+      await auth.logout(tokens.refreshToken);
+
+      await expect(
+        auth.refresh({ refreshToken: tokens.refreshToken }),
+      ).rejects.toThrow();
+    });
+
+    test("logging out a token that was never issued does not throw", async () => {
+      await expect(
+        auth.logout("this-token-was-never-issued"),
+      ).resolves.toBeUndefined();
+    });
+
+    test("logging out an already-revoked token does not overwrite revokedAt", async () => {
+      const { user, tokens } = await auth.register({
+        name: "Idem Timestamp Alice",
+        email: "idem-timestamp@example.com",
+        password: "hunter2hunter",
+      });
+
+      await auth.logout(tokens.refreshToken);
+
+      const [revokedOnce] = await db
+        .select()
+        .from(refreshTokens)
+        .where(eq(refreshTokens.userId, user.id));
+      const originalRevokedAt = revokedOnce.revokedAt;
+      expect(originalRevokedAt).not.toBeNull();
+
+      // give the second call a real time gap so an overwrite is detectable
+      await new Promise((resolve) => setTimeout(resolve, 5));
+
+      await auth.logout(tokens.refreshToken);
+
+      const [revokedTwice] = await db
+        .select()
+        .from(refreshTokens)
+        .where(eq(refreshTokens.userId, user.id));
+
+      expect(revokedTwice.revoked).toBe(true);
+      expect(revokedTwice.revokedAt).toEqual(originalRevokedAt);
+    });
   });
 });

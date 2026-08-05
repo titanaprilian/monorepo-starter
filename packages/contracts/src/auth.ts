@@ -51,6 +51,14 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export class UserNotFoundError extends Error {
+  constructor(message: string = "user not found") {
+    super(message);
+    this.name = "UserNotFoundError";
+  }
+}
+
+
 export interface AuthenticationService {
   register(input: RegisterInput | Record<string, any>): Promise<any>;
   verifyCredentials(input: VerifyCredentialsInput): Promise<any>;

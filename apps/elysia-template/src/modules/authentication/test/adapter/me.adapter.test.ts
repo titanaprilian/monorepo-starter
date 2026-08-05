@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
 import {
+  UserNotFoundError,
   type AuthenticationService,
 } from "@repo/contracts";
 import { authRoutes } from "@/modules/authentication/http";
@@ -64,6 +65,27 @@ describe("authentication http adapter: me", () => {
         createdAt: "2026-08-01T00:00:00.000Z",
       },
     });
+  });
+
+  test("returns 404 when UserNotFoundError is thrown by getUserProfile", async () => {
+    mockAuthService.getUserProfile = async () => {
+      throw new UserNotFoundError();
+    };
+
+    const token = signJwt({ sub: "non-existent-user" });
+
+    const response = await app.handle(
+      new Request("http://localhost/auth/me", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+    );
+
+    expect(response.status).toBe(404);
+    const json = await response.json();
+    expect(json.error.code).toBe("USER_NOT_FOUND");
   });
 
   test("returns 401 when Authorization header is missing", async () => {

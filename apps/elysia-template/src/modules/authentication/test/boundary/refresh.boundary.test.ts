@@ -42,7 +42,7 @@ describe("authentication: refresh", () => {
 
     // Perform refresh
     const { tokens: newTokens, user: refreshedUser } = await auth.refresh(
-      initialTokens.refreshToken
+      initialTokens.refreshToken,
     );
 
     expect(refreshedUser.id).toBe(user.id);
@@ -75,7 +75,9 @@ describe("authentication: refresh", () => {
     });
 
     // First refresh (valid)
-    const { tokens: nextTokens } = await auth.refresh(initialTokens.refreshToken);
+    const { tokens: nextTokens } = await auth.refresh(
+      initialTokens.refreshToken,
+    );
 
     // Verify next token is not revoked yet
     const nextHashed = hashRefreshToken(nextTokens.refreshToken);
@@ -86,9 +88,9 @@ describe("authentication: refresh", () => {
     expect(nextRowBefore.revoked).toBe(false);
 
     // Reuse the initial token
-    await expect(auth.refresh(initialTokens.refreshToken)).rejects.toBeInstanceOf(
-      UnauthorizedError
-    );
+    await expect(
+      auth.refresh(initialTokens.refreshToken),
+    ).rejects.toBeInstanceOf(UnauthorizedError);
 
     // Verify ALL user's tokens are now revoked
     const [nextRowAfter] = await db
@@ -100,7 +102,7 @@ describe("authentication: refresh", () => {
 
   test("rejects invalid, malformed, or non-existent refresh tokens", async () => {
     await expect(auth.refresh("non-existent-token")).rejects.toBeInstanceOf(
-      UnauthorizedError
+      UnauthorizedError,
     );
     await expect(auth.refresh("")).rejects.toBeInstanceOf(UnauthorizedError);
   });
@@ -121,7 +123,7 @@ describe("authentication: refresh", () => {
       .where(eq(refreshTokens.token, hashedToken));
 
     await expect(auth.refresh(tokens.refreshToken)).rejects.toBeInstanceOf(
-      UnauthorizedError
+      UnauthorizedError,
     );
   });
 
@@ -139,7 +141,53 @@ describe("authentication: refresh", () => {
       .where(eq(users.id, user.id));
 
     await expect(auth.refresh(tokens.refreshToken)).rejects.toBeInstanceOf(
-      UnauthorizedError
+      UnauthorizedError,
     );
+  });
+
+  test("reuse detection revokes tokens across independent sessions, not just the same chain", async () => {
+    const { user, tokens: sessionOneTokens } = await auth.register({
+      name: "Refresh Cross Session",
+      email: "refresh_cross_session@example.com",
+      password: "password123",
+    });
+
+    // a genuinely separate login — its own chain, not derived from
+    // sessionOneTokens via refresh()
+    const { tokens: sessionTwoTokens } = await auth.verifyCredentials({
+      email: "refresh_cross_session@example.com",
+      password: "password123",
+    });
+
+    // advance session one's chain once, so we have a used-up token to replay
+    await auth.refresh(sessionOneTokens.refreshToken);
+
+    // verify session two is untouched before the reuse event
+    const sessionTwoHashed = hashRefreshToken(sessionTwoTokens.refreshToken);
+    const [sessionTwoRowBefore] = await db
+      .select()
+      .from(refreshTokens)
+      .where(eq(refreshTokens.token, sessionTwoHashed));
+    expect(sessionTwoRowBefore.revoked).toBe(false);
+
+    // trigger reuse detection on session one's already-consumed token
+    await expect(
+      auth.refresh(sessionOneTokens.refreshToken),
+    ).rejects.toBeInstanceOf(UnauthorizedError);
+
+    // the critical assertion: session two — a completely independent login —
+    // must also be revoked. If reuse detection only walks the offending
+    // token's own lineage, this will fail while the narrower same-chain
+    // test still passes.
+    const [sessionTwoRowAfter] = await db
+      .select()
+      .from(refreshTokens)
+      .where(eq(refreshTokens.token, sessionTwoHashed));
+    expect(sessionTwoRowAfter.revoked).toBe(true);
+
+    // and prove it's actually enforced, not just flagged in the DB
+    await expect(
+      auth.refresh(sessionTwoTokens.refreshToken),
+    ).rejects.toBeInstanceOf(UnauthorizedError);
   });
 });

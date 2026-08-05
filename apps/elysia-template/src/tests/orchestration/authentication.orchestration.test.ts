@@ -148,7 +148,7 @@ describe("app composition root (Tier 3)", () => {
       app.handle(
         new Request("http://localhost/auth/login", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
           body: JSON.stringify({
             email: "concurrent-e2e@example.com",
             password: "hunter2hunter",
@@ -171,18 +171,13 @@ describe("app composition root (Tier 3)", () => {
     const bodies = await Promise.all(responses.map((r) => r.json()));
     for (const json of bodies) {
       expect(json.data.email).toBe("concurrent-e2e@example.com");
+      expect(json.data.tokens?.refreshToken).toBeTruthy();
     }
 
-    // if the login response exposes the refresh token (e.g. via a
-    // Set-Cookie header or response body field), assert uniqueness here.
-    // Adjust the extraction below to match your actual response shape —
-    // this assumes it's returned in json.data.tokens.refreshToken.
     const refreshTokenValues = bodies.map(
-      (json) => json.data.tokens?.refreshToken,
+      (json) => json.data.tokens.refreshToken,
     );
-    if (refreshTokenValues.every(Boolean)) {
-      expect(new Set(refreshTokenValues).size).toBe(CONCURRENT_LOGINS);
-    }
+    expect(new Set(refreshTokenValues).size).toBe(CONCURRENT_LOGINS);
   });
 
   test("concurrent requests mixing register + login for the same email resolve consistently", async () => {
@@ -219,18 +214,228 @@ describe("app composition root (Tier 3)", () => {
     ]);
 
     // exactly one well-defined outcome is acceptable here: either the login
-    // lost the race and correctly got InvalidCredentialsError (404/401,
-    // whatever your mapping is) because the user didn't exist yet, OR it
-    // won the race and got 200 because registration committed first.
+    // lost the race and correctly got InvalidCredentialsError (401)
+    // because the user didn't exist yet, OR it won the race and got 200
+    // because registration committed first.
     // What must NOT happen: a 500, a hang, or a login response claiming
     // success with a user object that doesn't match what got registered.
     expect(registerResponse.status).toBe(200);
-    expect([200, 401, 404]).toContain(loginResponse.status);
+    expect([200, 401]).toContain(loginResponse.status);
 
     if (loginResponse.status === 200) {
       const loginJson = await loginResponse.json();
       expect(loginJson.data.email).toBe(email);
     }
+  });
+
+  // ---------------------------------------------------------------------
+  // GET /auth/me
+  // ---------------------------------------------------------------------
+  test("GET /auth/me with a valid bearer access token returns 200 and authenticated user profile", async () => {
+    const register = await app.handle(
+      new Request("http://localhost/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({
+          name: "Me User",
+          email: "me-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    expect(register.status).toBe(200);
+    const registerJson = await register.json();
+    const token = registerJson.data.tokens.accessToken;
+
+    const response = await app.handle(
+      new Request("http://localhost/auth/me", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    );
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.data.id).toBe(registerJson.data.id);
+    expect(json.data.email).toBe("me-e2e@example.com");
+    expect(json.data.name).toBe("Me User");
+  });
+
+  test("GET /auth/me with no Authorization header returns 401", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/auth/me", {
+        method: "GET",
+      }),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  test("GET /auth/me with a malformed or expired token returns 401", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/auth/me", {
+        method: "GET",
+        headers: { Authorization: "Bearer invalid.token.value" },
+      }),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  // ---------------------------------------------------------------------
+  // POST /auth/logout
+  // ---------------------------------------------------------------------
+  test("POST /auth/logout with a valid refresh token invalidates single session end-to-end", async () => {
+    const register = await app.handle(
+      new Request("http://localhost/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Logout User",
+          email: "logout-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    expect(register.status).toBe(200);
+
+    const loginOne = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({
+          email: "logout-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    const loginTwo = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({
+          email: "logout-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    expect(loginOne.status).toBe(200);
+    expect(loginTwo.status).toBe(200);
+
+    const sessionOne = (await loginOne.json()).data.tokens;
+    const sessionTwo = (await loginTwo.json()).data.tokens;
+
+    const logoutResponse = await app.handle(
+      new Request("http://localhost/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: sessionOne.refreshToken }),
+      }),
+    );
+    expect(logoutResponse.status).toBe(200);
+    const logoutJson = await logoutResponse.json();
+    expect(logoutJson.data).toEqual({ success: true });
+
+    // sessionTwo refresh still works (200) — proving single-session logout, not logout-all
+    const refreshTwo = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: sessionTwo.refreshToken }),
+      }),
+    );
+    expect(refreshTwo.status).toBe(200);
+
+    // sessionOne refresh is rejected (401)
+    const refreshOne = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: sessionOne.refreshToken }),
+      }),
+    );
+    expect(refreshOne.status).toBe(401);
+  });
+
+  test("POST /auth/logout with no token returns 400", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/auth/logout", {
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(400);
+  });
+
+  // ---------------------------------------------------------------------
+  // POST /auth/refresh
+  // ---------------------------------------------------------------------
+  test("POST /auth/refresh rotates valid refresh token and returns new tokens", async () => {
+    const register = await app.handle(
+      new Request("http://localhost/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Refresh User",
+          email: "refresh-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    expect(register.status).toBe(200);
+
+    const login = await app.handle(
+      new Request("http://localhost/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({
+          email: "refresh-e2e@example.com",
+          password: "hunter2hunter",
+        }),
+      }),
+    );
+    expect(login.status).toBe(200);
+    const originalTokens = (await login.json()).data.tokens;
+
+    const refreshResponse = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Client-Type": "mobile" },
+        body: JSON.stringify({ refreshToken: originalTokens.refreshToken }),
+      }),
+    );
+    expect(refreshResponse.status).toBe(200);
+    const newTokens = (await refreshResponse.json()).data.tokens;
+
+    expect(newTokens.accessToken).toBeDefined();
+    expect(newTokens.refreshToken).toBeDefined();
+    expect(newTokens.refreshToken).not.toBe(originalTokens.refreshToken);
+
+    // replay protection: using original refresh token again returns 401
+    const replayResponse = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: originalTokens.refreshToken }),
+      }),
+    );
+    expect(replayResponse.status).toBe(401);
+  });
+
+  test("POST /auth/refresh with an invalid or tampered token returns 401", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: "invalid.refresh.token" }),
+      }),
+    );
+    expect(response.status).toBe(401);
+  });
+
+  test("POST /auth/refresh with no token returns 401", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/auth/refresh", {
+        method: "POST",
+      }),
+    );
+    expect(response.status).toBe(401);
   });
 
   // ---------------------------------------------------------------------

@@ -32,21 +32,26 @@ This app uses Vite and `@tanstack/react-router`.
 Testing tiers map to the frontend as follows:
 
 ### Tier 1: Boundary Tests (Human-Owned, Immutable)
+
 - **Location:** `src/modules/<feature>/test/boundary/*.boundary.test.ts`
 - **Role:** Black-box tests verifying the public contract of the module (e.g., using React Testing Library to test an exported component's render output and event handlers). Agents **cannot** touch these.
 
 ### Tier 2: Internal Tests (Agent-Owned, Mutable)
+
 Agents are free to create, modify, or delete these tests to ensure their logic works.
+
 - **Unit Tests (`*.unit.test.ts`):** Located in `src/modules/<feature>/internal/test/`. These test internal pure functions, state selectors, or isolated internal UI components.
 - **Adapter Tests (`*.adapter.test.ts`):** Located in `src/modules/<feature>/test/adapter/`. These test how the module's public hooks or components interact with external APIs (e.g., testing React Query hooks or fetch wrappers with mocked endpoints).
 
 ### Tier 3: Orchestration Tests (Human-Owned, Immutable)
+
 - **Location:** `src/tests/orchestration/*.orchestration.test.ts`
 - **Role:** End-to-End (E2E) tests that verify complete user flows across multiple route boundaries. Agents **cannot** touch these.
 
 ## Design System
 
 All UI work must adhere strictly to the "Structured Console" design direction detailed in `apps/web/DESIGN.md`.
+
 - Read `DESIGN.md` before generating or modifying UI components.
 - Rely on Tailwind utility classes and CSS custom properties defined in `src/index.css`.
 - Utilize the unstyled, copy-paste headless architecture (shadcn/ui pattern) located in `src/components/ui/`.

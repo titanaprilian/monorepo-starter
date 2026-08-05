@@ -3,7 +3,31 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: dark light;
+  --bg: #f4f4f5;
+  --card: #ffffff;
+  --border: #d4d4d8;
+  --muted: #71717a;
+  --fg: #18181b;
+  --sidebar: #ffffff;
+  --primary: #4f46e5;
+  --primary-fg: #ffffff;
+  --hover: #f4f4f5;
+  --active: #eef2ff;
+}
+
+.dark {
   color-scheme: dark;
+  --bg: #101012;
+  --card: #18181b;
+  --border: #3f3f46;
+  --muted: #a1a1aa;
+  --fg: #fafafa;
+  --sidebar: #0a0a0b;
+  --primary: #818cf8;
+  --primary-fg: #0a0a0b;
+  --hover: #232327;
+  --active: #232327;
 }
 
 html,
@@ -22,4 +46,39 @@ body {
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
+  background-color: var(--bg);
+  color: var(--fg);
+}
+
+.bg-card {
+  background: var(--card);
+}
+.bg-sidebar {
+  background: var(--sidebar);
+}
+.border-c {
+  border-color: var(--border);
+}
+.text-muted {
+  color: var(--muted);
+}
+.text-fg {
+  color: var(--fg);
+}
+.bg-primary {
+  background: var(--primary);
+}
+.text-primary {
+  color: var(--primary);
+}
+.text-primary-fg {
+  color: var(--primary-fg);
+}
+.hover-bg:hover {
+  background: var(--hover);
+}
+.active-bg {
+  background: var(--active);
+  color: var(--primary);
+  border-left: 2px solid var(--primary);
 }

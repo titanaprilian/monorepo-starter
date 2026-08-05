@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import type { User } from "@repo/contracts";
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import type { User } from '@repo/contracts';
 
 const mockStorage: Record<string, string> = {};
 const mockLocalStorage = {
@@ -17,8 +17,8 @@ const mockLocalStorage = {
   },
 };
 
-if (typeof globalThis.localStorage === "undefined") {
-  Object.defineProperty(globalThis, "localStorage", {
+if (typeof globalThis.localStorage === 'undefined') {
+  Object.defineProperty(globalThis, 'localStorage', {
     value: mockLocalStorage,
     writable: true,
   });
@@ -31,9 +31,9 @@ globalThis.fetch = mock((url: string | URL | Request, init?: RequestInit) =>
   fetchHandler(url.toString(), init)
 ) as unknown as typeof fetch;
 
-import { useAuthStore } from "../store";
+import { useAuthStore } from '../store';
 
-describe("useAuthStore", () => {
+describe('useAuthStore', () => {
   beforeEach(() => {
     localStorage.clear();
     useAuthStore.setState({
@@ -44,7 +44,7 @@ describe("useAuthStore", () => {
     });
   });
 
-  it("should have initial unauthenticated state", () => {
+  it('should have initial unauthenticated state', () => {
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
     expect(state.isAuthenticated).toBe(false);
@@ -52,7 +52,7 @@ describe("useAuthStore", () => {
     expect(state.error).toBeNull();
   });
 
-  it("checkAuth should do nothing if no access token in localStorage", async () => {
+  it('checkAuth should do nothing if no access token in localStorage', async () => {
     await useAuthStore.getState().checkAuth();
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
@@ -60,35 +60,35 @@ describe("useAuthStore", () => {
     expect(state.isLoading).toBe(false);
   });
 
-  it("checkAuth should fetch /auth/me and set user state on valid token", async () => {
-    localStorage.setItem("access_token", "valid-token");
+  it('checkAuth should fetch /auth/me and set user state on valid token', async () => {
+    localStorage.setItem('access_token', 'valid-token');
 
     const mockUserPayload = {
-      id: "user-123",
-      email: "test@example.com",
-      name: "Test User",
-      createdAt: "2026-08-05T12:00:00.000Z",
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      createdAt: '2026-08-05T12:00:00.000Z',
     };
 
-    let fetchCalledWithHeader = "";
+    let fetchCalledWithHeader = '';
     fetchHandler = async (_url: string, init?: RequestInit) => {
       if (init?.headers) {
         if (init.headers instanceof Headers) {
-          fetchCalledWithHeader = init.headers.get("authorization") || "";
+          fetchCalledWithHeader = init.headers.get('authorization') || '';
         } else if (Array.isArray(init.headers)) {
           const entry = init.headers.find(
-            ([k]) => k.toLowerCase() === "authorization"
+            ([k]) => k.toLowerCase() === 'authorization'
           );
-          fetchCalledWithHeader = entry ? entry[1] : "";
+          fetchCalledWithHeader = entry ? entry[1] : '';
         } else {
           const headersObj = init.headers as Record<string, string>;
           fetchCalledWithHeader =
-            headersObj["authorization"] || headersObj["Authorization"] || "";
+            headersObj['authorization'] || headersObj['Authorization'] || '';
         }
       }
       return new Response(JSON.stringify({ data: mockUserPayload }), {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       });
     };
 
@@ -98,18 +98,20 @@ describe("useAuthStore", () => {
     expect(state.user).toEqual(mockUserPayload as unknown as User);
     expect(state.isAuthenticated).toBe(true);
     expect(state.isLoading).toBe(false);
-    expect(fetchCalledWithHeader).toBe("Bearer valid-token");
+    expect(fetchCalledWithHeader).toBe('Bearer valid-token');
   });
 
-  it("checkAuth should clear state and token on invalid or expired token", async () => {
-    localStorage.setItem("access_token", "invalid-token");
+  it('checkAuth should clear state and token on invalid or expired token', async () => {
+    localStorage.setItem('access_token', 'invalid-token');
 
     fetchHandler = async () =>
       new Response(
-        JSON.stringify({ error: { code: "UNAUTHORIZED", message: "unauthorized" } }),
+        JSON.stringify({
+          error: { code: 'UNAUTHORIZED', message: 'unauthorized' },
+        }),
         {
           status: 401,
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
         }
       );
 
@@ -119,15 +121,15 @@ describe("useAuthStore", () => {
     expect(state.user).toBeNull();
     expect(state.isAuthenticated).toBe(false);
     expect(state.isLoading).toBe(false);
-    expect(localStorage.getItem("access_token")).toBeNull();
+    expect(localStorage.getItem('access_token')).toBeNull();
   });
 
-  it("login should set user, token and isAuthenticated state on success", async () => {
+  it('login should set user, token and isAuthenticated state on success', async () => {
     const mockUserPayload = {
-      id: "user-123",
-      email: "test@example.com",
-      name: "Test User",
-      createdAt: "2026-08-05T12:00:00.000Z",
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
+      createdAt: '2026-08-05T12:00:00.000Z',
     };
 
     fetchHandler = async () =>
@@ -135,18 +137,18 @@ describe("useAuthStore", () => {
         JSON.stringify({
           data: {
             user: mockUserPayload,
-            tokens: { accessToken: "new-access-token" },
+            tokens: { accessToken: 'new-access-token' },
           },
         }),
         {
           status: 200,
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
         }
       );
 
     const success = await useAuthStore.getState().login({
-      email: "test@example.com",
-      password: "password123",
+      email: 'test@example.com',
+      password: 'password123',
     });
 
     expect(success).toBe(true);
@@ -154,20 +156,56 @@ describe("useAuthStore", () => {
     expect(state.user).toEqual(mockUserPayload as unknown as User);
     expect(state.isAuthenticated).toBe(true);
     expect(state.isLoading).toBe(false);
-    expect(localStorage.getItem("access_token")).toBe("new-access-token");
+    expect(localStorage.getItem('access_token')).toBe('new-access-token');
   });
 
-  it("logout should clear token and reset auth state", async () => {
-    localStorage.setItem("access_token", "token-to-logout");
+  it('register should set user, token and isAuthenticated state on success', async () => {
+    const mockUserPayload = {
+      id: 'user-789',
+      email: 'registered@example.com',
+      name: 'Registered User',
+      createdAt: '2026-08-05T12:00:00.000Z',
+    };
+
+    fetchHandler = async () =>
+      new Response(
+        JSON.stringify({
+          data: {
+            user: mockUserPayload,
+            tokens: { accessToken: 'reg-access-token' },
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+    const success = await useAuthStore.getState().register({
+      name: 'Registered User',
+      email: 'registered@example.com',
+      password: 'password123',
+    });
+
+    expect(success).toBe(true);
+    const state = useAuthStore.getState();
+    expect(state.user).toEqual(mockUserPayload as unknown as User);
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.isLoading).toBe(false);
+    expect(localStorage.getItem('access_token')).toBe('reg-access-token');
+  });
+
+  it('logout should clear token and reset auth state', async () => {
+    localStorage.setItem('access_token', 'token-to-logout');
     useAuthStore.setState({
-      user: { id: "1", email: "a@b.com", createdAt: new Date() },
+      user: { id: '1', email: 'a@b.com', createdAt: new Date() },
       isAuthenticated: true,
     });
 
     fetchHandler = async () =>
       new Response(JSON.stringify({ data: { success: true } }), {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       });
 
     await useAuthStore.getState().logout();
@@ -175,6 +213,6 @@ describe("useAuthStore", () => {
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
     expect(state.isAuthenticated).toBe(false);
-    expect(localStorage.getItem("access_token")).toBeNull();
+    expect(localStorage.getItem('access_token')).toBeNull();
   });
 });

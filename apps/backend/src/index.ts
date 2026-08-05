@@ -12,3 +12,5 @@ const app = createApp({ db, auth }).listen(port);
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 );
+
+export type { App } from "./app";

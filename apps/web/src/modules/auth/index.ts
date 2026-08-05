@@ -36,12 +36,19 @@ export const useAuth = () => {
   };
 };
 
+import {
+  LogoutButton,
+  type LogoutButtonProps,
+} from './internal/components/LogoutButton';
+
 export {
   useAuthStore,
   LoginForm,
   type LoginFormProps,
   RegisterForm,
   type RegisterFormProps,
+  LogoutButton,
+  type LogoutButtonProps,
   registerSchema,
   loginSchema,
   type RegisterSchema,

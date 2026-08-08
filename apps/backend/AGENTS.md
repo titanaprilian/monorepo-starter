@@ -19,6 +19,14 @@ Transport concerns live **inside** each domain module but must never leak out of
 - Calling `.listen()` anywhere except the process entry point (`src/index.ts`).
 - Bypassing the `createApp` factory by composing feature plugins elsewhere. Feature `http.ts` files are imported by path (e.g. `import { authRoutes } from "./modules/authentication/http"`) only at the composition root.
 
-## HTTP Adapter Tests
+## Testing
 
-Adapter tests for this app live at `src/modules/<feature>/test/adapter/*.adapter.test.ts` and are owned by the implementing agent. They mount the feature's plugin onto a fresh Elysia instance with injected/mocked dependencies and verify schema validation and status-code mappings (e.g. Domain Error -> 400) via `app.handle()`. All responses MUST be asserted against the `successResponse`/`errorResponse` envelopes described above.
+Tests live in `test/` at the app root:
+
+- `test/unit/<feature>/<name>.test.ts` — Unit tests for services and internal logic
+- `test/integration/<feature>/<name>.test.ts` — Integration tests for HTTP endpoints against the real `test_db` database
+- `test/utils/` — Shared test helpers (fixtures, factories, setup)
+- `test/global-setup.ts` — Ensures `test_db` exists, runs Drizzle migrations (runs once before all integration tests)
+- `test/setup.ts` — Truncates all tables before each test file
+
+Use Vitest via `packages/config-vitest`. Run `bun test` from this directory for fast feedback, or `bun test` from the monorepo root to run all tests.

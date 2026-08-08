@@ -4,18 +4,16 @@
 
 Welcome! This monorepo uses a **Deep Modules** architecture tailored for AI agents. This document defines the generic rules of engagement shared across all applications in the monorepo. Framework-specific details live in each application's own `AGENTS.md`.
 
-## The Three-Step Sequence
+## Feature Delivery Pipeline
 
-When implementing a feature or fixing a bug in a module, you **must** follow this strict execution sequence:
+When implementing a feature or fixing a bug, follow this strict execution sequence:
 
-1. **Read Contracts**
-   First, locate and read the relevant contracts (usually in `packages/contracts` or the module's public definitions/types) to understand the data structures and the module's public interface. This keeps your context window clean and prevents you from making incorrect assumptions about the interface.
-
-2. **Read Boundary Tests**
-   Second, read the TDD-first boundary test located at `[app_root]/src/modules/<feature>/test/boundary/<operation>.boundary.test.ts`. These tests are human-authored and act as the immutable specification for your target feature. Read **only** the boundary file for your specific target operation (e.g. `test/boundary/register.boundary.test.ts` when implementing `register`) — not all boundary files for the module. Make sure you understand the input/output expectations and assertions.
-
-3. **Modify Internals Only**
-   Third, implement the required logic. You must exclusively modify or create files inside the target module's `/internal/` directory (e.g., `[app_root]/src/modules/<feature>/internal/*`). The module's public entry point (`[app_root]/src/modules/<feature>/index.ts`) must only export the concrete implementation satisfying the public contract.
+1. **grill-me** → Establish shared understanding of requirements
+2. **to-spec** → Create a specification document
+3. **to-tickets** → Break into tickets (test-writing tickets are priority #1, unblocked first)
+4. **implement** → Agents pick up tickets, write tests first (TDD), then implement
+5. **code-review** → Orchestrator reviews each completed ticket
+6. **push-to-github** → Orchestrator pushes when all tickets are complete
 
 ---
 
@@ -27,33 +25,33 @@ When implementing a feature or fixing a bug in a module, you **must** follow thi
 
 ---
 
-## Testing Tiers & Ownership
+## Testing Conventions
 
-Test files are organized into dedicated `test/` subdirectories at each level of the module hierarchy, and every test filename carries a suffix that encodes its tier and ownership. The suffix — not the folder position — is the sole structural signal for ownership, so you can identify a file's role and mutability from its name alone.
+Tests use a conventional folder-based structure with Vitest as the test runner via `packages/config-vitest/`.
 
-**Naming convention:**
+**Test locations:**
 
-| Suffix | Tier | Owner | Location |
-| --- | --- | --- | --- |
-| `.boundary.test.ts` | Tier 1 | Human (immutable to agents) | `<feature>/test/boundary/` |
-| `.adapter.test.ts` | Tier 2 | Agent | `<feature>/test/adapter/` |
-| `.unit.test.ts` | Tier 2 | Agent | `<feature>/internal/test/` |
-| `.orchestration.test.ts` | Tier 3 | Human (immutable to agents) | `[app_root]/src/tests/orchestration/` (one per module) |
+- `test/unit/<feature>/<name>.test.ts` — Unit tests for a single module/function in isolation
+- `test/integration/<feature>/<name>.test.ts` — Integration tests (backend only, HTTP layer against real database)
+- `test/utils/` — Per-app shared test helpers
+- `test/global-setup.ts` — One-time setup per target (e.g., ensure test DB exists, run migrations)
+- `test/setup.ts` — Per-file setup (e.g., truncate database tables)
 
-### Tier 1: Boundary Tests (`[app_root]/src/modules/<feature>/test/boundary/*.boundary.test.ts`)
-- **Owner**: Human
-- **Rules**: AI agents **cannot** modify or delete these tests. They serve as the source of truth for features.
-- **Goal**: Validate public contracts and interfaces (Black-box).
+**Naming:**
 
-### Tier 2: Internal Tests (`[app_root]/src/modules/<feature>/internal/test/*.unit.test.ts` and `[app_root]/src/modules/<feature>/test/adapter/*.adapter.test.ts`)
-- **Owner**: AI Agent (You!)
-- **Rules**: You are free to create, modify, or delete these tests to verify your code's correctness. Humans do not review these tests for style or format, but they must pass before merging.
-- **Goal**: White-box checks for complex internal algorithms/logic. Adapter tests validate the module's external-facing adapter (e.g. HTTP routes, CLI commands, background jobs) by mounting it against injected/mocked dependencies and verifying schema validation and error-to-status mappings.
+- Plain `.test.ts` suffix — no tier suffixes, no human/agent ownership restrictions
+- Tests are organized by feature, mirroring the module structure without the `modules/` prefix
 
-### Tier 3: Orchestration Tests (`[app_root]/src/tests/orchestration/<module>.orchestration.test.ts`)
-- **Owner**: Human
-- **Rules**: AI agents **cannot** modify or delete these tests.
-- **Goal**: Verify cross-module interactions and transaction rollbacks at the application root level.
+**Agent permissions:**
+
+- AI agents have full permission to create, modify, and delete all test files
+- All tests are code subject to the same review process as source code
+
+**TDD-first workflow:**
+
+- Write tests before implementing features
+- Run `bun test` from the target's directory for fast feedback
+- Run `bun test` from the monorepo root to execute all tests
 
 ---
 

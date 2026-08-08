@@ -27,26 +27,14 @@ This app uses Vite and `@tanstack/react-router`.
 - **Responsibilities:** They define the route paths, handle loader data, and wire together the public components imported from various feature modules (`src/modules/<feature>/index.ts`).
 - **Restrictions:** Route files must not contain complex business logic, complex local state, or direct styling beyond basic layout scaffolding. They are just the glue.
 
-## Testing Strategy
+## Testing
 
-Testing tiers map to the frontend as follows:
+Tests live in `test/` at the app root:
 
-### Tier 1: Boundary Tests (Human-Owned, Immutable)
+- `test/unit/<feature>/<name>.test.ts` — Unit tests for React components, hooks, and stores
+- `test/utils/` — Shared test helpers
 
-- **Location:** `src/modules/<feature>/test/boundary/*.boundary.test.ts`
-- **Role:** Black-box tests verifying the public contract of the module (e.g., using React Testing Library to test an exported component's render output and event handlers). Agents **cannot** touch these.
-
-### Tier 2: Internal Tests (Agent-Owned, Mutable)
-
-Agents are free to create, modify, or delete these tests to ensure their logic works.
-
-- **Unit Tests (`*.unit.test.ts`):** Located in `src/modules/<feature>/internal/test/`. These test internal pure functions, state selectors, or isolated internal UI components.
-- **Adapter Tests (`*.adapter.test.ts`):** Located in `src/modules/<feature>/test/adapter/`. These test how the module's public hooks or components interact with external APIs (e.g., testing React Query hooks or fetch wrappers with mocked endpoints).
-
-### Tier 3: Orchestration Tests (Human-Owned, Immutable)
-
-- **Location:** `src/tests/orchestration/*.orchestration.test.ts`
-- **Role:** End-to-End (E2E) tests that verify complete user flows across multiple route boundaries. Agents **cannot** touch these.
+Use Vitest with the React preset (jsdom) via `packages/config-vitest`. Run `bun test` from this directory.
 
 ## Design System
 

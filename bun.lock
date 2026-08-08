@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "monorepo-starter",
+      "devDependencies": {
+        "vitest": "^3.1.0",
+      },
     },
     "apps/backend": {
       "name": "@repo/backend",

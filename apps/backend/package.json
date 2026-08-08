@@ -9,7 +9,8 @@
     "start": "bun dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@elysiajs/rate-limit": "npm:elysia-rate-limit@4.6.2",

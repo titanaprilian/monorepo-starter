@@ -1,6 +1,0 @@
-[test]
-root = "."
-pathIgnorePatterns = [
-  "apps/backend/src/modules/*/*.test.ts",
-  "apps/backend/src/modules/*/internal/*.test.ts",
-]

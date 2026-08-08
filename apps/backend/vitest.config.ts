@@ -11,6 +11,7 @@ export default mergeConfig(
       },
     },
     test: {
+      passWithNoTests: true,
       globalSetup: ["./test/global-setup.ts"],
       setupFiles: ["./test/setup.ts"],
     },

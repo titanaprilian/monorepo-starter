@@ -3,7 +3,7 @@
   "version": "1.0.50",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --target=bun --outfile=dist/index.js",
     "start": "bun dist/index.js",
@@ -21,10 +21,13 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",
     "@eslint/js": "^10.0.1",
+    "@repo/config-vitest": "workspace:*",
     "bun-types": "latest",
     "eslint": "^10.8.0",
+    "postgres": "^3.4.9",
     "typescript": "^5.8.0",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^3.1.0"
   },
   "module": "src/index.js",
   "exports": {

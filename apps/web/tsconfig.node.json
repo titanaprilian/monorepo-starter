@@ -8,6 +8,7 @@
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
     "noEmit": true,
     "strict": true,
     "noUnusedLocals": true,
@@ -16,6 +17,7 @@
   },
   "include": [
     "vite.config.ts",
+    "vitest.config.ts",
     "eslint.config.js",
     "tailwind.config.ts",
     "postcss.config.js"

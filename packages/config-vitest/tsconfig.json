@@ -9,6 +9,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "declaration": true
   },
   "include": ["vitest.base.ts", "vitest.node.ts", "vitest.react.ts"]

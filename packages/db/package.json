@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -12,9 +13,11 @@
     "db:seed": "bun run src/run-seeder.ts"
   },
   "devDependencies": {
+    "@repo/config-vitest": "workspace:*",
     "bun-types": "latest",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

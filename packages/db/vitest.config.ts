@@ -1,12 +1,11 @@
 import { defineConfig, mergeConfig } from "vitest/config";
-import base from "./vitest.base.ts";
+import nodeConfig from "@repo/config-vitest/vitest.node";
 
 export default mergeConfig(
-  base,
+  nodeConfig,
   defineConfig({
     test: {
-      environment: "jsdom",
-      globals: true,
+      passWithNoTests: true,
     },
   }),
 );

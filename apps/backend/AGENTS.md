@@ -29,4 +29,4 @@ Tests live in `test/` at the app root:
 - `test/global-setup.ts` — Ensures `test_db` exists, runs Drizzle migrations (runs once before all integration tests)
 - `test/setup.ts` — Truncates all tables before each test file
 
-Use Vitest via `packages/config-vitest`. Run `bun test` from this directory for fast feedback, or `bun test` from the monorepo root to run all tests.
+Use Vitest via `packages/config-vitest`. Run `turbo run test --filter=@repo/backend` for fast feedback on unit tests, `turbo run test:integration --filter=@repo/backend` for integration tests (non-cacheable, requires a running Postgres database or CI service container), or `turbo run test` from the monorepo root to run all tests.

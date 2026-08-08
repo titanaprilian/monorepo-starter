@@ -6,7 +6,7 @@
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --target=bun --outfile=dist/index.js",
+    "build": "tsc -p tsconfig.client.json && bun build src/index.ts --target=bun --outfile=dist/index.js",
     "start": "bun dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -31,9 +31,17 @@
     "typescript-eslint": "^8.65.0",
     "vitest": "^3.1.0"
   },
-  "module": "src/index.js",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./client": "./src/client.ts"
+    ".": {
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "development": "./src/client.ts",
+      "default": "./dist/client.js"
+    }
   }
 }

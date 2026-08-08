@@ -7,6 +7,11 @@
       "outputs": ["dist/**"],
       "inputs": ["src/**", "tsconfig*.json", "package.json"]
     },
+    "@repo/web#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".tanstack/**"],
+      "env": ["VITE_API_URL"]
+    },
     "typecheck": {
       "dependsOn": ["^build"]
     },

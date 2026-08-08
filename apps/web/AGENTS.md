@@ -34,7 +34,7 @@ Tests live in `test/` at the app root:
 - `test/unit/<feature>/<name>.test.ts` — Unit tests for React components, hooks, and stores
 - `test/utils/` — Shared test helpers
 
-Use Vitest with the React preset (jsdom) via `packages/config-vitest`. Run `bun test` from this directory.
+Use Vitest with the React preset (jsdom) via `packages/config-vitest`. Run `turbo run test --filter=@repo/web` for fast feedback, or `turbo run test` from the monorepo root to run unit tests.
 
 ## Design System
 

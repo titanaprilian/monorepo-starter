@@ -50,8 +50,9 @@ Tests use a conventional folder-based structure with Vitest as the test runner v
 **TDD-first workflow:**
 
 - Write tests before implementing features
-- Run `bun test` from the target's directory for fast feedback
-- Run `bun test` from the monorepo root to execute all tests
+- Run `turbo run test --filter=<pkg>` for fast feedback on a single package
+- Run `turbo run test` from the monorepo root to execute all unit tests
+- Run `turbo run test:integration` to execute integration tests (requires a running Postgres database)
 
 ---
 

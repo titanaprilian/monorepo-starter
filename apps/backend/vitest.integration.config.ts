@@ -11,8 +11,10 @@ export default mergeConfig(
       },
     },
     test: {
-      dir: "./test/unit",
+      dir: "./test/integration",
       passWithNoTests: true,
+      globalSetup: ["./test/global-setup.ts"],
+      setupFiles: ["./test/setup.ts"],
     },
   }),
 );

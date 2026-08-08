@@ -13,12 +13,18 @@
     "test": {
       "dependsOn": ["^build"]
     },
+    "@repo/backend#test:integration": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "env": ["DATABASE_URL", "JWT_SECRET"]
+    },
     "lint": {},
     "clean": {
       "cache": false
     },
     "dev": {
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["PORT", "DATABASE_URL", "JWT_SECRET", "VITE_API_URL"]
     }
   }
 }
